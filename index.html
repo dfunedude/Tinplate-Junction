@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tinplate Junction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="src/styles/base.css">
+<link rel="stylesheet" href="src/styles/stage.css">
+<link rel="stylesheet" href="src/styles/deck.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="view" aria-label="Tabletop train layout. Drag to look around, pinch or scroll to zoom."></canvas>
+    <header class="brand">
+      <span class="brand-mark">TINPLATE JUNCTION</span>
+      <span class="brand-sub">O27 tubular track · 8 × 5 ft table</span>
+    </header>
+    <div class="hud-tools">
+      <button id="btnSound" class="icon-btn" aria-pressed="true" aria-label="Sound on" title="Sound">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="mute" d="M17 9l5 6M22 9l-5 6" style="display:none"/></svg>
+      </button>
+      <button id="btnFollow" class="icon-btn" aria-pressed="false" aria-label="Follow the engine" title="Follow the engine (F)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="13" height="10" rx="2"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/></svg>
+      </button>
+      <button id="btnView" class="icon-btn" aria-label="Reset view" title="Table view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      </button>
+      <button id="btnHelp" class="icon-btn" aria-label="How to play" title="How to play">?</button>
+    </div>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+    <div id="help" class="help" hidden>
+      <div class="help-card" role="dialog" aria-labelledby="helpTitle">
+        <h2 id="helpTitle">Running the layout</h2>
+        <p class="lede">Mouse, trackpad and touch all work the same way.</p>
+        <dl>
+          <dt>Run</dt><dd>Slide the throttle to apply volts. Direction cuts power and flips the train, like the old E-unit reverser. Tap a switch on the table to throw it.</dd>
+          <dt>Track</dt><dd>Tap a piece to add it at the glowing open end. Tap any ring to build from that end. Drag pieces and their ends snap together. Rotate flips the selected piece.</dd>
+          <dt>Train</dt><dd>Pick an engine and add cars. Tap a car to repaint it, or × to uncouple it.</dd>
+          <dt>View</dt><dd>Drag to look around. Pinch or scroll to zoom. Two-finger drag or right-drag pans. The camera button rides along behind the engine; the target button returns to the whole table.</dd>
+          <dt>Keys</dt><dd>↑ ↓ throttle · D direction · W whistle · F follow · R rotate · Delete · Ctrl+Z undo</dd>
+        </dl>
+        <div class="close-row"><button id="btnHelpClose" class="key">Close</button></div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="deck" aria-label="Controls">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-run" data-tab="run" aria-selected="true">Run</button>
+      <button class="tab" role="tab" id="tab-track" data-tab="track" aria-selected="false">Track</button>
+      <button class="tab" role="tab" id="tab-train" data-tab="train" aria-selected="false">Train</button>
+      <span class="readout" id="readout"><b>0.0 V</b> · 0 smph</span>
+    </div>
+
+    <section class="panel" data-panel="run" role="tabpanel" aria-labelledby="tab-run">
+      <div class="run">
+        <label class="throttle" for="throttle">
+          <span class="throttle-head"><span>Throttle</span><output id="voltOut" for="throttle">0 V</output></span>
+          <input type="range" id="throttle" min="0" max="100" step="1" value="0">
+          <span class="ticks" aria-hidden="true"><span>0</span><span>6</span><span>12</span><span>18 V</span></span>
+        </label>
+        <div class="run-keys">
+          <button id="btnDir" class="key" aria-label="Direction">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
+            <small id="dirLabel">Forward</small>
+          </button>
+          <button id="btnWhistle" class="key" aria-label="Whistle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h9a4 4 0 1 0 0-4H4z"/><path d="M8 10V7M17 6l2-2M19 10h2"/></svg>
+            <small id="whistleLabel">Whistle</small>
+          </button>
+          <button id="btnLamp" class="key" aria-pressed="false" aria-label="Room lamp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l3 8H5z"/><path d="M12 11v8M8 21h8"/></svg>
+            <small id="lampLabel">Lamp on</small>
+          </button>
+        </div>
+        <div class="run-hint"><span class="lamp"></span>Tap a switch on the table to throw it.</div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="track" role="tabpanel" aria-labelledby="tab-track" hidden>
+      <div class="row scroller" id="palette" role="toolbar" aria-label="Track pieces"></div>
+      <div class="row scroller">
+        <button id="btnRotate" class="key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>Rotate</button>
+        <button id="btnDelete" class="key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>Delete</button>
+        <button id="btnUndo" class="key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo</button>
+        <select id="presetSel" class="key" aria-label="Load a layout">
+          <option value="">Layouts…</option>
+        </select>
+        <span class="stat" id="trackStat"></span>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="train" role="tabpanel" aria-labelledby="tab-train" hidden>
+      <div class="row scroller" id="stockRow" role="toolbar" aria-label="Engines and cars">
+        <span class="row-lbl">Engine</span>
+        <span id="engineSlot" class="slot"></span>
+        <span class="divider" aria-hidden="true"></span>
+        <span class="row-lbl">Add a car</span>
+        <span id="carSlot" class="slot"></span>
+      </div>
+      <div class="row">
+        <div class="consist scroller" id="consist" aria-label="Your train, front to back"></div>
+        <span class="consist-hint">Tap track to set the train down</span>
+      </div>
+    </section>
+  </nav>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

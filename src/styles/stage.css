@@ -1,0 +1,60 @@
+/* ===== stage: the 3D view and what floats over it (brand, view buttons, toast, help) ===== */
+#stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+.brand {
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: 12px; pointer-events: none;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.brand-mark {
+  font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: 0.06em;
+  color: var(--ivory); text-shadow: 0 1px 0 rgba(0,0,0,.6);
+}
+.brand, .hud-tools { transition: opacity .6s; }
+#app.is-dark .brand { opacity: .45; }
+#app.is-dark .hud-tools { opacity: .75; }
+.brand-sub { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ivory-dim); }
+.hud-tools { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); top: 10px; display: flex; gap: 8px; }
+.icon-btn {
+  width: var(--tap); height: var(--tap); border-radius: 50%;
+  display: grid; place-items: center; padding: 0;
+  background: color-mix(in srgb, var(--deck) 82%, transparent); color: var(--ivory);
+  border: 1px solid var(--deck-line); cursor: pointer;
+  font: 700 18px/1 var(--font-ui);
+  touch-action: manipulation;
+}
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn[aria-pressed="true"] { color: var(--brass); }
+#btnFollow[aria-pressed="true"] { background: var(--brass); color: var(--brass-ink); border-color: var(--brass-deep); }
+#toast {
+  position: absolute; left: 50%; top: 64px; transform: translateX(-50%);
+  max-width: min(92%, 420px); padding: 9px 16px; border-radius: 6px;
+  background: var(--deck); border: 1px solid var(--deck-line); color: var(--ivory);
+  font-size: 14px; text-align: center; pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+}
+.help {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--room) 70%, transparent);
+}
+.help-card {
+  width: min(100%, 520px); max-height: 100%; overflow: auto;
+  background: var(--deck); border: 1px solid var(--deck-line); border-radius: 10px;
+  padding: 18px 20px 16px; box-shadow: 0 18px 50px rgba(0,0,0,.5);
+  -webkit-user-select: text; user-select: text;
+}
+.help-card h2 { margin: 0 0 4px; font: 800 24px/1.1 var(--font-display); letter-spacing: .05em; text-wrap: balance; }
+.help-card p.lede { margin: 0 0 12px; color: var(--ivory-dim); }
+.help-card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; }
+.help-card dt { font: 700 13px/1.4 var(--font-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--brass); }
+.help-card dd { margin: 0; }
+.help-card .close-row { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+@media (max-width: 480px) {
+  .brand-mark { font-size: 16px; }
+  .hud-tools { gap: 6px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .brand-sub { display: none; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .brand-sub { display: none; }
+}

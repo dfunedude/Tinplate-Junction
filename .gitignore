@@ -1,0 +1,6 @@
+# build output: rebuild with `npm run build`, or download it from the CI run
+dist/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log

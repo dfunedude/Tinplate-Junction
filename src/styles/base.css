@@ -1,0 +1,35 @@
+/* ===== base: colour tokens, fonts, page layout ===== */
+/* Layout: the 3D tabletop fills the screen; a bakelite control deck, styled after a
+   1960s train transformer faceplate, docks under it. One look on every device. */
+:root {
+  --room: #16120f;
+  --deck: #231c17;
+  --deck-raised: #30271f;
+  --deck-sunk: #1b1511;
+  --deck-line: #45382c;
+  --ivory: #ece2ce;
+  --ivory-dim: #a6987f;
+  --brass: #c8a664;
+  --brass-deep: #8a6d38;
+  --brass-ink: #1d170f;
+  --lamp-green: #8db381;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-ui: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --tap: 44px;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html { height: 100%; box-sizing: border-box; background: var(--room); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--room); color: var(--ivory);
+  font-family: var(--font-ui); font-size: 15px; line-height: 1.3;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#app { height: 100%; display: flex; flex-direction: column; }
+
+button { font-family: var(--font-ui); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

@@ -1,0 +1,16 @@
+{
+  "name": "tinplate-junction",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A 3D tabletop O27 toy train layout: lay tubular track, couple up a consist and run it from a 1960s-style transformer.",
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "build": "node tools/build.mjs",
+    "build:debug": "node tools/build.mjs --debug",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
