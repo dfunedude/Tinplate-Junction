@@ -3,48 +3,12 @@ import * as THREE from 'three';
 import { PI } from '../core/geometry.js';
 import { textTexture } from '../render/textures.js';
 import { paint, M } from '../render/materials.js';
-import { UNIT, mergeList, Kit, prismX } from '../render/kit.js';
+import { UNIT, Kit, prismX, loftGeo } from '../render/kit.js';
 import { letter } from '../render/decals.js';
 import { bodyCoupler, dieselTruck, carTrucks, headlight } from './parts.js';
 import { css, liveryMat } from './liveries.js';
 
 // ---- F3 cab unit: a lofted body with the bulldog nose ----
-function ringPts(w, y0, y1, r) {
-  const pts = [], K = 6;
-  for (let i = 0; i < 4; i++) pts.push([w, y0 + (y1 - r - y0) * i / 4]);
-  for (let i = 0; i <= K; i++) { const a = i / K * PI / 2; pts.push([w - r + r * Math.cos(a), y1 - r + r * Math.sin(a)]); }
-  for (let i = 1; i < 6; i++) pts.push([(w - r) - 2 * (w - r) * i / 6, y1]);
-  for (let i = 0; i <= K; i++) { const a = PI / 2 + i / K * PI / 2; pts.push([-w + r + r * Math.cos(a), y1 - r + r * Math.sin(a)]); }
-  for (let i = 1; i <= 4; i++) pts.push([-w, (y1 - r) - (y1 - r - y0) * i / 4]);
-  for (let i = 1; i < 4; i++) pts.push([-w + 2 * w * i / 4, y0]);
-  return pts;
-}
-function loftGeo(sections) {
-  const rings = sections.map(s => ringPts(s.w, s.y0, s.y1, s.r));
-  const N = rings[0].length, pos = [], idx = [];
-  sections.forEach((s, i) => rings[i].forEach(([z, y]) => pos.push(s.x, y, z)));
-  for (let i = 0; i < sections.length - 1; i++) for (let j = 0; j < N; j++) {
-    const a = i * N + j, b = (i + 1) * N + j, c = (i + 1) * N + (j + 1) % N, d = i * N + (j + 1) % N;
-    idx.push(a, b, d, b, c, d);
-  }
-  const shell = new THREE.BufferGeometry();
-  shell.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  shell.setIndex(idx);
-  shell.computeVertexNormals();
-  const parts = [shell];
-  for (const [i, flip] of [[0, false], [sections.length - 1, true]]) {
-    const ring = rings[i], x = sections[i].x, cy = (sections[i].y0 + sections[i].y1) / 2, p = [];
-    for (let j = 0; j < N; j++) {
-      const A = ring[j], B = ring[(j + 1) % N];
-      if (flip) p.push(x, cy, 0, x, B[1], B[0], x, A[1], A[0]); else p.push(x, cy, 0, x, A[1], A[0], x, B[1], B[0]);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-    g.computeVertexNormals();
-    parts.push(g);
-  }
-  return mergeList(parts);
-}
 let f3Shell = null;
 function f3ShellGeo() {
   if (f3Shell) return f3Shell;

@@ -18,6 +18,25 @@ export function liveryMat(key, planar, opts, draw) {
   return liveryMatCache.get(key);
 }
 
+// Matched sets (passenger, subway, high-speed): the engine and its cars list the same schemes in the
+// same order, so a whole train can wear one scheme.
+const PAX = [
+  { name: 'Lakeshore silver', swatch: 0x2b4c8c, base: 0xb4b9bd, metal: 0.6, stripe: 0x2b4c8c, accent: 0xc9a54a, ink: '#1d2a44', ink2: '#eef0ea', road: 'LAKESHORE' },
+  { name: 'Midnight blue', swatch: 0x22324f, base: 0x22324f, metal: 0.2, stripe: 0xc9a54a, accent: 0xe8e2d2, ink: '#e8e0cc', ink2: '#22324f', road: 'NORTHERN LINES' },
+  { name: 'Signal red', swatch: 0xb8322a, base: 0xdedad2, metal: 0.15, stripe: 0xb8322a, accent: 0x2a2a2a, ink: '#2a2a2a', ink2: '#f1ece2', road: 'PRAIRIE CENTRAL' },
+];
+const LINES = [
+  { name: 'Blue line', swatch: 0x2d5fb3, stripe: 0x2d5fb3, route: 'B' },
+  { name: 'Red line', swatch: 0xc4372c, stripe: 0xc4372c, route: 'R' },
+  { name: 'Green line', swatch: 0x2f8a4c, stripe: 0x2f8a4c, route: 'G' },
+];
+const EXPRESS = [
+  { name: 'White & red', swatch: 0xb5302a, base: 0xebe8e1, metal: 0.15, band: 0xb5302a, stripe: 0x26282b, ink: '#26282b', ink2: '#f3efe6', road: 'TINPLATE EXPRESS' },
+  { name: 'White & blue', swatch: 0x274a86, base: 0xe7e9ea, metal: 0.15, band: 0x274a86, stripe: 0xc9a54a, ink: '#1d2a44', ink2: '#f3efe6', road: 'LAKESHORE EXPRESS' },
+  { name: 'Silver & teal', swatch: 0x1d6f6c, base: 0xaab0b3, metal: 0.6, band: 0x1d6f6c, stripe: 0xe9e4d6, ink: '#1e2426', ink2: '#eef0ea', road: 'NORTHERN EXPRESS' },
+];
+const numbered = (list, nums) => list.map((l, i) => ({ ...l, num: nums[i] }));
+
 export const LIVERIES = {
   steam: [{ name: 'Black', swatch: 0x1c1c1e, num: '637' }, { name: 'Black, 2037', swatch: 0x26262a, num: '2037' }],
   tender: [{ name: 'Black', swatch: 0x1c1c1e }],
@@ -61,4 +80,12 @@ export const LIVERIES = {
     { name: 'Red', swatch: 0x8c3a2b, base: 0x8c3a2b, ink: '#ebe3d2', road: 'LAKESHORE', num: '6017-50' },
     { name: 'Gray', swatch: 0x76797b, base: 0x76797b, ink: '#1b1b1b', road: 'NORTHERN LINES', num: '6017-185' },
   ],
+  charger: numbered(PAX, ['4601', '4622', '4640']),
+  coach: numbered(PAX, ['7201', '7230', '7255']),
+  bilevel: numbered(PAX, ['8301', '8320', '8344']),
+  subway: numbered(LINES, ['4120', '4310', '4502']),
+  subwaycar: numbered(LINES, ['4121', '4311', '4503']),
+  highspeed: numbered(EXPRESS, ['2001', '2101', '2201']),
+  hscoach: numbered(EXPRESS, ['3001', '3101', '3201']),
+  hstail: numbered(EXPRESS, ['2002', '2102', '2202']),
 };

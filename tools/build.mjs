@@ -41,6 +41,11 @@ function visit(file) {
   modules.push({ file, name, imports, exports, body });
 }
 visit(join(ROOT, ENTRY));
+// each module must also parse on its own, the way the browser loads it in development
+for (const m of modules) {
+  const r = spawnSync(process.execPath, ['--check', m.file], { encoding: 'utf8' });
+  if (r.status !== 0) errors.push(`${m.name} does not parse:\n${r.stderr.trim()}`);
+}
 lint();
 if (errors.length) fail(errors.join('\n'));
 

@@ -1,7 +1,7 @@
 // ===== ui/consist: the Train tab, where you pick an engine and add, repaint or uncouple cars =====
 import { css, LIVERIES } from '../stock/liveries.js';
-import { VEHICLES } from '../stock/catalog.js';
-import { train, MAX_CARS } from '../state.js';
+import { VEHICLES, FAMILIES } from '../stock/catalog.js';
+import { train, state, MAX_CARS } from '../state.js';
 import { save } from '../storage.js';
 import { $, toast } from './dom.js';
 import { updateButtons } from './hud.js';
@@ -11,25 +11,49 @@ export function applyConsist(list, msg) {
   const before = train.onTrack;
   train.setConsist(list);
   if (before && !train.onTrack) toast('Not enough track behind the train for that. Lay more track first.');
-  else if (!train.onTrack) autoPlaceTrain();
+  else {
+    if (!train.onTrack) autoPlaceTrain();
+    if (msg) toast(msg, 1600);
+  }
   renderConsist(); updateButtons(); save();
-  if (msg) toast(msg, 1600);
 }
 export function setEngine(t) {
-  const list = train.consist.slice();
-  if (list[0] && list[0].type === t) { list[0] = { type: t, li: list[0].li + 1 }; applyConsist(list, `${VEHICLES[t].name}: ${LIVERIES[t][(list[0].li) % LIVERIES[t].length].name}`); return; }
+  const list = train.consist.slice(), kind = VEHICLES[t].set, F = FAMILIES[kind];
+  if (list[0] && list[0].type === t) {
+    // tapping the engine again repaints it, and the cars of a matched set with it
+    const li = list[0].li + 1;
+    list.forEach((c, i) => { if (i === 0 || F.matched && VEHICLES[c.type].set === kind) list[i] = { type: c.type, li }; });
+    applyConsist(list, `${VEHICLES[t].name}: ${LIVERIES[t][li % LIVERIES[t].length].name}`);
+    return;
+  }
+  const was = list[0] && VEHICLES[list[0].type].set;
+  if (was && was !== kind) {
+    // another kind of train: park this one and bring out the last train of that kind
+    state.parked[was] = list;
+    const next = (state.parked[kind] || F.train).map(c => ({ ...c }));
+    if (next[0].type !== t) next[0] = { type: t, li: 0 };
+    const n = next.length - 1;
+    applyConsist(next, `${F.name} train, ${n} car${n === 1 ? '' : 's'}`);
+    return;
+  }
   list[0] = { type: t, li: 0 };
   applyConsist(list);
 }
 export function addCar(t) {
   if (train.consist.length - 1 >= MAX_CARS) { toast(`That's a long train. ${MAX_CARS} cars is the limit.`); return; }
-  const list = train.consist.slice();
-  // keep the caboose at the end
-  const cabIdx = list.findIndex((c, i) => i > 0 && c.type === 'caboose');
-  const used = list.filter(c => c.type === t).length;
-  const car = { type: t, li: used % LIVERIES[t].length };
-  if (t !== 'caboose' && cabIdx > 0 && cabIdx === list.length - 1) list.splice(cabIdx, 0, car); else list.push(car);
+  const list = train.consist.slice(), kind = VEHICLES[t].set, engine = list[0];
+  // a car from a matched set wears the engine's paint; other cars take turns through their schemes
+  const li = FAMILIES[kind].matched && engine && VEHICLES[engine.type].set === kind ? engine.li : list.filter(c => c.type === t).length % LIVERIES[t].length;
+  const car = { type: t, li };
+  // keep the caboose (or a rear power car) at the end
+  const last = list.length - 1;
+  if (!VEHICLES[t].tail && last > 0 && VEHICLES[list[last].type].tail) list.splice(last, 0, car); else list.push(car);
   applyConsist(list);
+}
+// show one kind of train's engines and cars on the Train tab
+export function showFamily(kind) {
+  $('familySel').value = kind;
+  document.querySelectorAll('#stockRow [data-set]').forEach(b => { b.hidden = b.dataset.set !== kind; });
 }
 export function renderConsist() {
   const box = $('consist');

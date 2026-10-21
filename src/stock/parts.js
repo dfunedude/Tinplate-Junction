@@ -85,6 +85,22 @@ export function dieselTruck(dir, reach) {
   const g = k.build();
   return { g, axles: withAxles(g, [-0.78, 0.78], r) };
 }
+// Passenger truck: a longer wheelbase, coil springs over the journal boxes and a deep bolster.
+export function passengerTruck(dir, reach) {
+  const k = new Kit(), r = 0.34;
+  for (const s of [-1, 1]) {
+    k.box(M.plastic, 2.3, 0.24, 0.1, 0, 0.44, s * 0.86);
+    for (const ax of [-0.72, 0.72]) {
+      k.box(M.plastic, 0.4, 0.2, 0.16, ax, r, s * 0.87);
+      k.cylY(M.steel, 0.1, 0.24, ax, 0.62, s * 0.86);
+    }
+    k.box(M.graphite, 0.5, 0.3, 0.14, 0, 0.5, s * 0.88);
+  }
+  k.box(M.plastic, 0.56, 0.2, 1.7, 0, 0.66, 0);
+  if (dir) coupler(k, dir, reach);
+  const g = k.build();
+  return { g, axles: withAxles(g, [-0.72, 0.72], r) };
+}
 export function carTrucks(off, front, back, kind = freightTruck) {
   return [{ off, ...kind(1, front - off) }, { off: -off, ...kind(-1, back - off) }];
 }
@@ -106,4 +122,15 @@ export function headlight(body, x, y, z = 0) {
   body.add(pool);
   lens.userData.ownMatKeepMap = glow.userData.ownMatKeepMap = pool.userData.ownMatKeepMap = true;
   return { lensM, glow, pool, pos: new THREE.Vector3(x, y, z) };
+}
+
+// ---- passenger fittings ----
+// A row of windows down both sides. Pass a glowMat to light them from track power, like the bulbs
+// in a tinplate coach.
+export function windowRow(k, mat, xs, y, w, h, side) {
+  for (const s of [-1, 1]) for (const x of xs) k.box(mat, w, h, 0.04, x, y, s * side);
+}
+// the rubber gangway at the end of a passenger car
+export function gangway(k, x, top = 3.2) {
+  k.box(M.plastic, 0.22, top - 1.15, 1.5, x, (top + 1.15) / 2, 0);
 }

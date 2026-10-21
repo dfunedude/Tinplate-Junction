@@ -6,7 +6,7 @@ A 3D tabletop toy train layout that runs in the browser. Lay O27 tubular three-r
 
 - **Run**: slide the throttle to apply volts. Direction cuts power and flips the train, like the old E-unit reverser. Tap a switch's lantern to throw it. The lamp button darkens the room.
 - **Track**: tap a piece to add it at the glowing open end, or tap any ring to build from that end. Drag pieces and their ends snap together. Rotate, Delete, Undo and preset layouts are on the second row.
-- **Train**: pick an engine (tap it again to repaint it) and add cars. Tap a car to repaint it, or × to uncouple it. Tap any track to set the train down there.
+- **Train**: choose a kind of train (freight, passenger, subway or high-speed), then pick an engine and add cars. Each kind keeps its own train, so switching back brings yours out again. Tap the engine again, or a car in your train, to repaint it, or × to uncouple a car. Tap any track to set the train down there. Passenger cars light up when the track has power.
 - **Keys**: ↑ ↓ throttle · D direction · W whistle · F follow cam · R rotate · Delete · Ctrl+Z undo · 1 2 3 tabs
 
 ## Working on it
@@ -32,7 +32,7 @@ npm run build    # writes dist/tinplate-junction.html, the single-file page for 
 | `src/core/` | Track math with no rendering: dimensions, the piece catalogue, the layout graph, preset layouts, the train's path |
 | `src/render/` | Renderer, scene, camera and lights; procedural textures; materials; the mesh kit; lettering decals |
 | `src/world/` | The table and room, the 3D track pieces, the scenery |
-| `src/stock/` | Locomotives and cars: shared parts, paint schemes, steam, diesels, freight cars, the catalogue |
+| `src/stock/` | Locomotives and cars: shared parts, paint schemes, steam, diesels, freight cars, the passenger set, the subway, the high-speed set, and the catalogue |
 | `src/sim/` | The train: consist, motion along the track, reversing, headlight |
 | `src/fx/` | Smoke and synthesized sound |
 | `src/ui/` | Control deck, camera, track editor, Train tab, pointer input, icons |
@@ -43,7 +43,8 @@ npm run build    # writes dist/tinplate-junction.html, the single-file page for 
 Common changes:
 
 - **A new preset layout**: add it to `src/core/presets.js`. The tests check that it closes, fits on the table and clears the scenery.
-- **A new car or paint scheme**: write the builder in `src/stock/freight.js`, add it to `VEHICLES` in `src/stock/catalog.js` and its paint schemes to `src/stock/liveries.js`, draw its chip in `src/ui/icons.js`, and add it to the car buttons in `src/ui/controls.js`.
+- **A new engine or car**: write its builder in `src/stock/`, add it to `VEHICLES` in `src/stock/catalog.js` with the kind of train it belongs to (its button then appears on that kind's row), add its paint schemes to `src/stock/liveries.js`, and draw its chip in `src/ui/icons.js`.
+- **A new kind of train**: add it to `FAMILIES` in `src/stock/catalog.js`, with the train it starts with.
 - **A new track piece**: define it in `src/core/pieces.js`, model it in `src/world/track.js`, and add a palette button in `src/ui/icons.js`.
 - **Scenery**: `src/world/scenery.js`. If something moves, update its keep-out zone in `tests/presets.test.js`.
 - **Sounds**: `src/fx/sound.js`. **Colours and fonts**: `src/styles/base.css`.

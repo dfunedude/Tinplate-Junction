@@ -3,18 +3,19 @@ import * as THREE from 'three';
 import { PI } from './core/geometry.js';
 import { buildPreset } from './core/presets.js';
 import { canvas, renderer, scene, ROOM_COLOR, camera, hemi, sun, fill, LIGHT_BASE } from './render/stage.js';
-import { MATS, DECAL_MATS, room } from './render/materials.js';
+import { MATS, OWN_MATS, room } from './render/materials.js';
 import { buildRoom } from './world/room.js';
 import { bumperLamp } from './world/track.js';
 import { transformerHandle, NIGHT_POOLS, buildScenery } from './world/scenery.js';
+import { VEHICLES, FAMILIES } from './stock/catalog.js';
 import { VMAX } from './sim/train.js';
-import { layout, views, sound, smoke, train, state, DEFAULT_CONSIST } from './state.js';
-import { save, loadSaved, savedConsist } from './storage.js';
+import { layout, views, sound, smoke, train, state } from './state.js';
+import { save, loadSaved, savedConsist, savedParked } from './storage.js';
 import { $, toast } from './ui/dom.js';
 import { setThrottle, updateDir, updateSoundBtn, setLamp, updateButtons } from './ui/hud.js';
 import { view, resetView, stepCamera } from './ui/camera.js';
 import { markers, syncViews, addPiece, rotateSel, autoPlaceTrain, throwSwitch, loadPreset } from './ui/editor.js';
-import { applyConsist, setEngine, addCar, renderConsist } from './ui/consist.js';
+import { applyConsist, setEngine, addCar, renderConsist, showFamily } from './ui/consist.js';
 import { buildControls, setMode } from './ui/controls.js';
 
 train.onThrow = p => { sound.clack(); save(); };
@@ -48,7 +49,7 @@ function frame(now) {
     fill.intensity = LIGHT_BASE.fill * (0.25 + 0.75 * L);
     room.env = 0.15 + 0.85 * L;
     for (const m of MATS) m.envMapIntensity = m.userData.env * room.env;
-    for (const m of DECAL_MATS) m.envMapIntensity = m.userData.env * room.env;
+    for (const m of OWN_MATS) m.envMapIntensity = m.userData.env * room.env;
     for (const m of NIGHT_POOLS) m.opacity = m.userData.peak * state.dark;
     $('app').classList.toggle('is-dark', state.dark > 0.5);
     scene.background.copy(ROOM_COLOR).multiplyScalar(0.45 + 0.55 * L);
@@ -94,7 +95,9 @@ function boot() {
   if (saved && Array.isArray(saved.layout) && saved.layout.length) layout.load(saved.layout);
   else if (!saved) buildPreset(layout, 'spur');
   syncViews();
-  train.setConsist((saved && savedConsist(saved.consist)) || DEFAULT_CONSIST);
+  train.setConsist((saved && savedConsist(saved.consist)) || FAMILIES.freight.train);
+  if (saved) state.parked = savedParked(saved.parked);
+  showFamily(VEHICLES[train.consist[0].type].set);
   if (saved && saved.sound === false) sound.on = false;
   // put the train back where it was, or on the front straight of the starter layout
   const pose = saved && saved.pose && isFinite(saved.pose.x) ? saved.pose : null;

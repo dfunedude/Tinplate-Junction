@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { RAIL_TOP } from '../core/geometry.js';
 import { TrackPath, nearestTrackPoint } from '../core/path.js';
 import { scene } from '../render/stage.js';
-import { DECAL_MATS } from '../render/materials.js';
+import { dropMat } from '../render/materials.js';
 import { VEHICLES, buildVehicle } from '../stock/catalog.js';
 
 export const VMAX = 34;          // inches per second at full throttle
@@ -14,8 +14,8 @@ function disposeTree(obj) {
   obj.traverse(o => {
     if (!o.isMesh && !o.isSprite) return;
     if (o.userData.owned) o.geometry.dispose();
-    if (o.userData.ownMat) { DECAL_MATS.delete(o.material); if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
-    if (o.userData.ownMatKeepMap) o.material.dispose();
+    if (o.userData.ownMat) { if (o.material.map) o.material.map.dispose(); dropMat(o.material); }
+    if (o.userData.ownMatKeepMap) dropMat(o.material);
   });
 }
 
@@ -44,7 +44,7 @@ export class Train {
     this.consist = list.map(c => ({ type: c.type, li: c.li | 0 }));
     for (const v of this.vehicles) {
       for (const o of [v.body, ...v.trucks.map(t => t.g)]) { this.group.remove(o); disposeTree(o); }
-      if (v.lamps) for (const m of v.lamps) m.dispose();   // caboose window and marker glow
+      if (v.lamps) for (const m of v.lamps) dropMat(m);   // lit windows and marker lamps
     }
     this.vehicles = [];
     for (const c of this.consist) {

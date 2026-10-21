@@ -104,3 +104,58 @@ export function prismX(pts, zHalf) {
   const s = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
   return new THREE.ExtrudeGeometry(s, { depth: zHalf * 2, bevelEnabled: false }).translate(0, 0, -zHalf);
 }
+
+// Rounded-rectangle cross sections (half-width w, bottom y0, top y1, corner radius r) for loftGeo.
+function ringPts(w, y0, y1, r) {
+  const pts = [], K = 6;
+  for (let i = 0; i < 4; i++) pts.push([w, y0 + (y1 - r - y0) * i / 4]);
+  for (let i = 0; i <= K; i++) { const a = i / K * PI / 2; pts.push([w - r + r * Math.cos(a), y1 - r + r * Math.sin(a)]); }
+  for (let i = 1; i < 6; i++) pts.push([(w - r) - 2 * (w - r) * i / 6, y1]);
+  for (let i = 0; i <= K; i++) { const a = PI / 2 + i / K * PI / 2; pts.push([-w + r + r * Math.cos(a), y1 - r + r * Math.sin(a)]); }
+  for (let i = 1; i <= 4; i++) pts.push([-w, (y1 - r) - (y1 - r - y0) * i / 4]);
+  for (let i = 1; i < 4; i++) pts.push([-w + 2 * w * i / 4, y0]);
+  return pts;
+}
+// Skin a body through cross sections along x, e.g. a cab nose; closed at both ends.
+export function loftGeo(sections) {
+  const rings = sections.map(s => ringPts(s.w, s.y0, s.y1, s.r));
+  const N = rings[0].length, pos = [], idx = [];
+  sections.forEach((s, i) => rings[i].forEach(([z, y]) => pos.push(s.x, y, z)));
+  for (let i = 0; i < sections.length - 1; i++) for (let j = 0; j < N; j++) {
+    const a = i * N + j, b = (i + 1) * N + j, c = (i + 1) * N + (j + 1) % N, d = i * N + (j + 1) % N;
+    idx.push(a, b, d, b, c, d);
+  }
+  const shell = new THREE.BufferGeometry();
+  shell.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  shell.setIndex(idx);
+  shell.computeVertexNormals();
+  const parts = [shell];
+  for (const [i, flip] of [[0, false], [sections.length - 1, true]]) {
+    const ring = rings[i], x = sections[i].x, cy = (sections[i].y0 + sections[i].y1) / 2, p = [];
+    for (let j = 0; j < N; j++) {
+      const A = ring[j], B = ring[(j + 1) % N];
+      if (flip) p.push(x, cy, 0, x, B[1], B[0], x, A[1], A[0]); else p.push(x, cy, 0, x, A[1], A[0], x, B[1], B[0]);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+    g.computeVertexNormals();
+    parts.push(g);
+  }
+  return mergeList(parts);
+}
+
+// Turn a built model end for end (x -> -x), e.g. a power car for the back of a trainset. Flips only
+// the meshes a Kit built; add lettering and lamps afterwards, at mirrored positions.
+export function mirrorX(group) {
+  for (const mesh of group.children) {
+    if (!mesh.isMesh || !mesh.userData.owned) continue;
+    const g = mesh.geometry;
+    for (const name of ['position', 'normal']) { const a = g.attributes[name].array; for (let i = 0; i < a.length; i += 3) a[i] = -a[i]; }
+    // swap two corners of every triangle so the faces still point outwards
+    for (const name of ['position', 'normal', 'uv']) {
+      const n = g.attributes[name].itemSize, a = g.attributes[name].array;
+      for (let t = 0; t < a.length; t += 3 * n) for (let c = 0; c < n; c++) { const i = t + n + c, j = t + 2 * n + c; [a[i], a[j]] = [a[j], a[i]]; }
+    }
+    g.computeBoundingSphere();
+  }
+}

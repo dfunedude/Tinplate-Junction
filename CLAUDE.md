@@ -17,6 +17,12 @@ A browser toy-train game on three.js 0.160 with no npm dependencies. The source 
 - Lower layers never import higher ones: core, render, world and stock, sim, fx, state, storage, ui, main.
 - Modules evaluate in import order from `main.js`. Keep top-level side effects, such as adding roots to the scene, where they are.
 
+## Models and materials
+
+- Make materials with `stdMat`, `paint`, `liveryMat` or `glowMat` (`src/render/materials.js`), never `new MeshStandardMaterial` directly. Those helpers start a material at the room lamp's current level and register it so it dims with the room; anything else stays daylight-bright at night.
+- A material made for one vehicle (lit windows, lamps) goes in the vehicle's `lamps` list, or on a decal or headlight, so `Train.setConsist` releases it through `dropMat` when the train changes.
+- New vehicles go in `VEHICLES` with a `set` (a key of `FAMILIES`); the Train tab builds its buttons from that.
+
 ## Publishing
 
 1. `npm test && npm run build`

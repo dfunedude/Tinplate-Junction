@@ -1,6 +1,14 @@
 // ===== fx/sound: synthesized motor, track, switch and whistle sounds (Web Audio) =====
 import { VMAX } from '../sim/train.js';
 
+// Hold-to-sound voices: a three-chime steam whistle, a two-tone diesel horn, and the five-chime air
+// horn of a modern passenger train.
+const VOICES = {
+  whistle: { freqs: [311, 370, 466], wave: 'triangle', lp: 2000, vib: 5.5, depth: 2.5, mix: 0.33, level: 0.16, steam: true },
+  horn: { freqs: [233, 277], wave: 'sawtooth', lp: 1500, vib: 31, depth: 6, mix: 0.22, level: 0.12 },
+  chime: { freqs: [311, 370, 415, 494, 622], wave: 'sawtooth', lp: 2200, vib: 3.5, depth: 1.5, mix: 0.12, level: 0.12 },
+};
+
 export class Sound {
   constructor() { this.ctx = null; this.on = true; this.lastClick = 0; this.voice = null; this.last = { sp: -1, v: -1 }; }
   init() {
@@ -80,7 +88,6 @@ export class Sound {
   snap() { if (!this.ctx) return; this.burst({ f: 3200, q: 6, gain: 0.12, dur: 0.04 }); this.tone(1900, 0.06, 0.03, 'triangle', 0.01); }
   clack() { if (!this.ctx) return; this.burst({ f: 900, q: 1.5, gain: 0.16, dur: 0.07 }); this.burst({ f: 1600, q: 2, gain: 0.1, dur: 0.05, delay: 0.09 }); }
   thud(speed) { if (!this.ctx) return; const v = Math.min(1, speed / VMAX); this.tone(70, 0.3, 0.12 + 0.2 * v); this.burst({ f: 500, q: 0.7, gain: 0.08 + 0.15 * v, dur: 0.12, type: 'lowpass' }); }
-  // Hold-to-sound whistle (air chime in the tender) or diesel horn (a buzzy DC horn).
   signal(down, kind) {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;
@@ -89,26 +96,26 @@ export class Sound {
       return;
     }
     if (this.voice) return;
+    const V = VOICES[kind] || VOICES.horn;
     const g = ctx.createGain(); g.gain.value = 0.0001; g.connect(this.master);
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = kind === 'whistle' ? 2000 : 1500; lp.connect(g);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = V.lp; lp.connect(g);
     const nodes = [];
-    const freqs = kind === 'whistle' ? [311, 370, 466] : [233, 277];
-    const vib = ctx.createOscillator(); vib.frequency.value = kind === 'whistle' ? 5.5 : 31;
-    const vibG = ctx.createGain(); vibG.gain.value = kind === 'whistle' ? 2.5 : 6; vib.connect(vibG); nodes.push(vib);
-    for (const f of freqs) {
-      const o = ctx.createOscillator(); o.type = kind === 'whistle' ? 'triangle' : 'sawtooth'; o.frequency.value = f;
+    const vib = ctx.createOscillator(); vib.frequency.value = V.vib;
+    const vibG = ctx.createGain(); vibG.gain.value = V.depth; vib.connect(vibG); nodes.push(vib);
+    for (const f of V.freqs) {
+      const o = ctx.createOscillator(); o.type = V.wave; o.frequency.value = f;
       vibG.connect(o.frequency);
-      const og = ctx.createGain(); og.gain.value = kind === 'whistle' ? 0.33 : 0.22;
+      const og = ctx.createGain(); og.gain.value = V.mix;
       o.connect(og); og.connect(lp); nodes.push(o);
     }
-    if (kind === 'whistle') {
+    if (V.steam) {
       const n = ctx.createBufferSource(); n.buffer = this.noise; n.loop = true;
       const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.2;
       const ng = ctx.createGain(); ng.gain.value = 0.35;
       n.connect(bp); bp.connect(ng); ng.connect(lp); nodes.push(n);
     }
     nodes.forEach(n => n.start(t));
-    g.gain.setTargetAtTime(kind === 'whistle' ? 0.16 : 0.12, t, 0.05);
+    g.gain.setTargetAtTime(V.level, t, 0.05);
     this.voice = { g, nodes };
   }
 }

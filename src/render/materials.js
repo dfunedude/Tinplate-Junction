@@ -2,23 +2,31 @@
 import * as THREE from 'three';
 import { TEX } from './textures.js';
 
-// Every material is registered so the room lamp can dim reflections with the lights.
+// The room lamp dims reflections on every material: room.env is the current level (1 by day), and
+// each material keeps its full-light strength in userData.env. New materials start at the current
+// level, so a train built after dark matches the rest of the room.
+export const room = { env: 1 };
+// Shared materials last the whole session.
 export const MATS = [];
 export function stdMat(o) {
   const env = o.envMapIntensity ?? 0.6;
-  const m = new THREE.MeshStandardMaterial({ ...o, envMapIntensity: env });
+  const m = new THREE.MeshStandardMaterial({ ...o, envMapIntensity: env * room.env });
   m.userData.env = env;
   MATS.push(m);
   return m;
 }
-// Lettering decals come and go with the train, so they're tracked separately and dimmed with the room.
-export const DECAL_MATS = new Set();
-export const room = { env: 1 };
+// Materials made for one model (lettering, lamp lenses). The train's come and go, so they're kept in
+// a Set, and dropMat takes them out again.
+export const OWN_MATS = new Set();
 export function decalMat(tex, rough = 0.6) {
   const m = new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: rough, metalness: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, envMapIntensity: 0.55 * room.env });
   m.userData.env = 0.55;
-  DECAL_MATS.add(m);
+  OWN_MATS.add(m);
   return m;
+}
+export function dropMat(m) {
+  OWN_MATS.delete(m);
+  m.dispose();
 }
 const paintCache = new Map();
 export function paint(hex, rough = 0.5, metal = 0.1, env = 0.55) {
@@ -42,7 +50,10 @@ export const M = {
   bark: stdMat({ color: 0x4a3627, roughness: 0.95, metalness: 0 }),
   driverFace: stdMat({ map: TEX.spoke, roughness: 0.35, metalness: 0.5, envMapIntensity: 0.8 }),
 };
-// lamp-type materials whose glow follows track power
+// lamp-type materials whose glow follows track power; the glass itself dims with the room
 export function glowMat(hex, intensity = 1) {
-  return new THREE.MeshStandardMaterial({ color: 0x111111, emissive: hex, emissiveIntensity: intensity, roughness: 0.3 });
+  const m = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: hex, emissiveIntensity: intensity, roughness: 0.3, envMapIntensity: room.env });
+  m.userData.env = 1;
+  OWN_MATS.add(m);
+  return m;
 }

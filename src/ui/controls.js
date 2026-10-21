@@ -1,13 +1,13 @@
 // ===== ui/controls: wires up the deck buttons, tabs and keyboard shortcuts =====
 import { PRESETS } from '../core/presets.js';
-import { VEHICLES } from '../stock/catalog.js';
+import { VEHICLES, FAMILIES } from '../stock/catalog.js';
 import { layout, sound, train, state } from '../state.js';
 import { save } from '../storage.js';
 import { $, toast } from './dom.js';
 import { setThrottle, updateDir, updateSoundBtn, setLamp, updateButtons } from './hud.js';
 import { resetView, follow, setFollow } from './camera.js';
 import { refreshMarkers, highlight, addPiece, rotateSel, deleteSel, undo, loadPreset } from './editor.js';
-import { setEngine, addCar } from './consist.js';
+import { setEngine, addCar, showFamily } from './consist.js';
 import { bindCanvas } from './input.js';
 import { PALETTE, sil } from './icons.js';
 
@@ -25,21 +25,18 @@ export function buildControls() {
   sel.add(new Option('Clear the table', 'clear'));
   sel.addEventListener('change', () => { const v = sel.value; sel.value = ''; if (v) loadPreset(v); sel.blur(); });
 
-  const er = $('engineSlot');
-  for (const t of ['steam', 'f3', 'gp9']) {
-    const b = document.createElement('button');
-    b.className = 'chip wide'; b.type = 'button'; b.dataset.engine = t;
-    b.innerHTML = `${sil(t)}<span>${VEHICLES[t].name}</span>`;
-    b.addEventListener('click', () => setEngine(t));
-    er.appendChild(b);
-  }
-  const cr = $('carSlot');
-  for (const t of ['boxcar', 'hopper', 'tank', 'gondola', 'flatcar', 'caboose']) {
-    const b = document.createElement('button');
-    b.className = 'chip'; b.type = 'button';
-    b.innerHTML = `${sil(t)}<span>${VEHICLES[t].name}</span>`;
-    b.addEventListener('click', () => addCar(t));
-    cr.appendChild(b);
+  // the Train tab shows the engines and cars of one kind of train at a time
+  const fam = $('familySel');
+  for (const [k, F] of Object.entries(FAMILIES)) fam.add(new Option(F.name, k));
+  fam.addEventListener('change', () => { showFamily(fam.value); fam.blur(); });
+  for (const [t, V] of Object.entries(VEHICLES)) {
+    if (V.kind === 'tender') continue;
+    const loco = V.kind === 'loco', b = document.createElement('button');
+    b.className = loco ? 'chip wide' : 'chip'; b.type = 'button'; b.dataset.set = V.set;
+    if (loco) b.dataset.engine = t;
+    b.innerHTML = `${sil(t)}<span>${V.name}</span>`;
+    b.addEventListener('click', () => (loco ? setEngine(t) : addCar(t)));
+    $(loco ? 'engineSlot' : 'carSlot').appendChild(b);
   }
 
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setMode(t.dataset.tab)));
