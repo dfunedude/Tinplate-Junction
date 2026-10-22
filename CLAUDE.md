@@ -29,6 +29,7 @@ A browser toy-train game on three.js 0.160 with no npm dependencies. The source 
 1. `npm test && npm run build`
 2. Publish `dist/tinplate-junction.html` to the existing artifact. Find it with the Artifact tool's `list` (title "Tinplate Junction"), `read` it, then publish with its `url`. Only create a new artifact if the user asks.
 3. Keep the localStorage key (`tinplate-junction-v1` in `src/storage.js`) and the save format compatible, because players' layouts live there.
+4. Whenever you publish an update to the artifact, also commit the change and push it to `main` on GitHub, without asking first. The user has asked for this every time, so the published game and `main` always match.
 
 ## Checking a change in a browser
 
