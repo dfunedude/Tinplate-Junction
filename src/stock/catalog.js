@@ -6,8 +6,9 @@ import { buildBoxcar, buildHopper, buildTank, buildGondola, buildFlatcar, buildC
 import { buildCharger, buildCoach, buildBilevel } from './passenger.js';
 import { buildSubway, buildSubwayCar } from './transit.js';
 import { buildHighSpeed, buildPowerCarRear, buildHsCoach } from './highspeed.js';
+import { buildTrolley, buildTrolleyCar, buildOpenCar } from './trolley.js';
 
-// Each builder returns { front, back, pivots, body, trucks, spin, head?, lamps?, update? }.
+// Each builder returns { front, back, pivots, body, trucks, spin, head?, lamps?, poles?, update? }.
 // Local frame: +x forward, y up from the rail head, z to the right.
 // `set` is the kind of train it belongs to (see FAMILIES); `tail` cars stay at the back of the train.
 export const VEHICLES = {
@@ -29,15 +30,19 @@ export const VEHICLES = {
   highspeed: { name: 'High-speed', kind: 'loco', set: 'highspeed', sound: 'chime', build: buildHighSpeed },
   hscoach: { name: 'High-speed car', set: 'highspeed', build: buildHsCoach },
   hstail: { name: 'Rear power car', set: 'highspeed', tail: true, build: buildPowerCarRear },
+  trolley: { name: 'Trolley', kind: 'loco', set: 'trolley', sound: 'gong', build: buildTrolley },
+  trolleycar: { name: 'Trolley car', set: 'trolley', build: buildTrolleyCar },
+  opencar: { name: 'Open car', set: 'trolley', build: buildOpenCar },
 };
 // The kinds of train, each with the train it comes out of the box as. In a matched set the cars
-// wear the engine's paint scheme.
+// wear the engine's paint scheme. A trolley strings its wire over the layout (world/overhead).
 const starter = (...types) => types.map(type => ({ type, li: 0 }));
 export const FAMILIES = {
   freight: { name: 'Freight', train: starter('steam', 'boxcar', 'hopper', 'tank', 'caboose') },
   passenger: { name: 'Passenger', matched: true, train: starter('charger', 'coach', 'coach', 'coach') },
   subway: { name: 'Subway', matched: true, train: starter('subway', 'subwaycar', 'subwaycar', 'subwaycar') },
   highspeed: { name: 'High-speed', matched: true, train: starter('highspeed', 'hscoach', 'hscoach', 'hscoach', 'hstail') },
+  trolley: { name: 'Trolley', matched: true, train: starter('trolley', 'opencar') },
 };
 export function buildVehicle(type, li = 0) {
   const list = LIVERIES[type];

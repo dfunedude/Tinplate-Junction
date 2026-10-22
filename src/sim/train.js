@@ -1,6 +1,6 @@
 // ===== sim/train: the consist, motion along the track path, E-unit style reversing =====
 import * as THREE from 'three';
-import { RAIL_TOP } from '../core/geometry.js';
+import { PI, RAIL_TOP, WIRE_Y } from '../core/geometry.js';
 import { TrackPath, nearestTrackPoint } from '../core/path.js';
 import { scene } from '../render/stage.js';
 import { dropMat } from '../render/materials.js';
@@ -31,7 +31,8 @@ export class Train {
     this.headS = 0; this.speed = 0; this.dir = 1; this.reversing = false;
     this.odo = 0; this.onTrack = false; this.length = 0; this.lastPose = null;
     this.onThrow = null; this.onBump = null; this.onJoint = null;
-    this._a = {}; this._b = {}; this._c = {};
+    this.wireUp = false;   // the trolley wire is strung (world/overhead), so trolley poles can go up
+    this._a = {}; this._b = {}; this._c = {}; this._d = {};
     // One real spotlight follows the lead engine's headlight. It lives in the scene root and only its
     // intensity changes, so the number of lights (and the compiled shaders) never changes.
     this.beam = new THREE.SpotLight(0xffd9a3, 0, 110, 0.5, 0.75, 0);
@@ -40,8 +41,12 @@ export class Train {
   }
   get loco() { return this.vehicles[0]; }
   get locoSpec() { return this.consist[0] ? VEHICLES[this.consist[0].type] : null; }
+  // a trolley in the train needs wire over the track
+  get needsWire() { return this.vehicles.some(v => v.poles); }
   setConsist(list) {
     this.consist = list.map(c => ({ type: c.type, li: c.li | 0 }));
+    // a repainted trolley keeps its poles where they were
+    const poles = this.vehicles.map(v => v.poles && v.poles.map(p => p.up));
     for (const v of this.vehicles) {
       for (const o of [v.body, ...v.trucks.map(t => t.g)]) { this.group.remove(o); disposeTree(o); }
       if (v.lamps) for (const m of v.lamps) dropMat(m);   // lit windows and marker lamps
@@ -51,10 +56,11 @@ export class Train {
       this.vehicles.push(buildVehicle(c.type, c.li));
       if (c.type === 'steam') this.vehicles.push(buildVehicle('tender', 0));
     }
-    for (const v of this.vehicles) {
+    this.vehicles.forEach((v, i) => {
       this.group.add(v.body);
       for (const t of v.trucks) { this.group.add(t.g); t.lastSeg = null; }
-    }
+      if (v.poles && poles[i]) v.poles.forEach((p, j) => { p.up = poles[i][j] || 0; });
+    });
     this.length = this.vehicles.reduce((s, v) => s + v.front + v.back, 0);
     if (this.onTrack) { if (this.fit()) this.pose(); else this.lift(); }
   }
@@ -121,6 +127,11 @@ export class Train {
     const acc = target > this.speed ? 15 : (this.reversing ? 90 : 24);
     this.speed += Math.sign(target - this.speed) * Math.min(Math.abs(target - this.speed), acc * dt);
     if (this.reversing && this.speed < 0.05) { this.speed = 0; this.dir *= -1; this.reversing = false; }
+    // trolley poles: the one trailing behind rides the wire, the other is hooked down over its end
+    for (const v of this.vehicles) if (v.poles) for (const p of v.poles) {
+      const goal = this.wireUp && p.side === -this.dir ? 1 : 0;
+      p.up += Math.sign(goal - p.up) * Math.min(Math.abs(goal - p.up), dt * 1.4);
+    }
     const ds = this.speed * this.dir * dt;
     if (ds) this.move(ds);
     this.pose();
@@ -156,8 +167,23 @@ export class Train {
         for (const a of t.axles) a.m.rotation.z = -this.odo / a.r;
       }
       for (const w of v.spin) w.m.rotation.z = -this.odo / w.r;
+      if (v.poles) this.aimPoles(v, o);
       if (v.update) v.update(this.odo);
       s -= v.front + v.back;
+    }
+  }
+  // Swing each trolley pole between its hook on the roof (up = 0) and the wire over the centre rail
+  // behind its base (up = 1). The wire point is found along the track, so the pole follows it round curves.
+  aimPoles(v, o) {
+    const b = v.body, c = Math.cos(b.rotation.y), sn = Math.sin(b.rotation.y), D = this._d;
+    for (const p of v.poles) {
+      const rise = WIRE_Y - RAIL_TOP - p.y, reach = Math.sqrt(Math.max(0, p.len * p.len - rise * rise));
+      this.path.at(o + p.x + p.side * reach, D);
+      // the wire point in the body's frame, measured outwards from the base of the pole
+      const dx = D.x - b.position.x, dz = D.z - b.position.z;
+      const ax = (c * dx - sn * dz - p.x) * p.side, az = (sn * dx + c * dz) * p.side;
+      const k = p.up * p.up * (3 - 2 * p.up);
+      p.g.rotation.set(0, (p.side > 0 ? 0 : PI) + k * Math.atan2(-az, ax), p.rest + k * (Math.atan2(rise, Math.hypot(ax, az)) - p.rest));
     }
   }
   // lamps run off track voltage, so they glow brighter as the throttle opens
@@ -171,6 +197,11 @@ export class Train {
         v.head.pool.material.opacity = on * 0.22 * dark;
       }
       if (v.lamps) for (const m of v.lamps) m.emissiveIntensity = on * 1.8;
+      // now and then the trolley wheel arcs on the wire, a blue flash best seen after dark
+      if (v.poles) for (const p of v.poles) {
+        const arc = on && p.up > 0.98 && this.speed > 3 && Math.random() < 0.2;
+        p.spark.material.opacity = arc ? Math.random() * (0.3 + 0.7 * dark) : 0;
+      }
     }
     // aim the beam from the lens down the track to a spot on the table about 30 inches ahead
     const lead = this.vehicles[0];

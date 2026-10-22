@@ -4,7 +4,7 @@ import { PI, TAU, TABLE_W, TABLE_D, normAng, clamp } from '../core/geometry.js';
 import { APPEND } from '../core/pieces.js';
 import { PRESETS, appendPiece, buildPreset } from '../core/presets.js';
 import { PieceView, markerRoot, ringGeo, arrowGeo, markerMat, markerActiveMat, markerHitGeo } from '../world/track.js';
-import { layout, views, sound, train, state } from '../state.js';
+import { layout, views, sound, train, overhead, state } from '../state.js';
 import { save } from '../storage.js';
 import { toast } from './dom.js';
 import { updateStat, updateButtons } from './hud.js';
@@ -14,6 +14,7 @@ export const markers = [];
 export function syncViews() {
   for (const [p, v] of views) if (!layout.pieces.includes(p)) { v.dispose(); views.delete(p); }
   for (const p of layout.pieces) { if (!views.has(p)) views.set(p, new PieceView(p)); else views.get(p).sync(); }
+  overhead.invalidate();
   refreshMarkers(); highlight(); updateStat(); updateButtons();
 }
 export function refreshMarkers() {
@@ -186,6 +187,7 @@ export function beginDrag(p, at) {
   if (state.active && state.active.p === p) state.active = null;
   p.lifted = true;
   layout.connectAll();
+  overhead.invalidate();   // the wire comes off the piece while it's carried
   state.sel = p;
   refreshMarkers(); highlight();
 }

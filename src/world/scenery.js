@@ -1,4 +1,5 @@
 // ===== world/scenery: tabletop accessories kept to the edges of the board =====
+// Where each thing stands is also listed in core/keepout.js, which keeps track and wire masts off it.
 import * as THREE from 'three';
 import { PI } from '../core/geometry.js';
 import { scene } from '../render/stage.js';

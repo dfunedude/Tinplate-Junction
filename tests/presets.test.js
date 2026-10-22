@@ -6,13 +6,10 @@ import { TABLE_W, TABLE_D } from '../src/core/geometry.js';
 import { Layout } from '../src/core/layout.js';
 import { PRESETS, buildPreset } from '../src/core/presets.js';
 import { TrackPath } from '../src/core/path.js';
+import { KEEP_OUT } from '../src/core/keepout.js';
 
 const TABLE = { x: TABLE_W / 2 - 1.4, z: TABLE_D / 2 - 1.4 };
-// keep-out zones for the scenery in src/world/scenery.js (centre x, z, radius in inches; rects as [x0, x1, z0, z1])
-const CIRCLES = [[40.5, 23.5, 6.4], [-38.5, -23.2, 1.2], [-19.5, -23.2, 1.2],
-  ...[-6, 6, 18, 30, 42].map(x => [x, -27.5, 1.9]),
-  ...[[-44, -26], [-41.5, -22.5], [-45, -19], [44, -27], [40.5, -26.5], [44.5, -22], [-44, 25.5], [-40.5, 27]].map(([x, z]) => [x, z, 2.4])];
-const RECTS = [[-35.5, -22.5, -29.4, -21.8]];
+const CIRCLES = KEEP_OUT.circles, RECTS = KEEP_OUT.rects;
 const HALF = 1.5;              // track + car half-width margin from the centreline
 const MIN_GAP = 3.4;           // closest allowed centreline distance between unrelated tracks
 

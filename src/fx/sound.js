@@ -1,12 +1,13 @@
 // ===== fx/sound: synthesized motor, track, switch and whistle sounds (Web Audio) =====
 import { VMAX } from '../sim/train.js';
 
-// Hold-to-sound voices: a three-chime steam whistle, a two-tone diesel horn, and the five-chime air
-// horn of a modern passenger train.
+// Hold-to-sound voices: a three-chime steam whistle, a two-tone diesel horn, the five-chime air
+// horn of a modern passenger train, and a trolley's foot gong, struck again and again while held.
 const VOICES = {
   whistle: { freqs: [311, 370, 466], wave: 'triangle', lp: 2000, vib: 5.5, depth: 2.5, mix: 0.33, level: 0.16, steam: true },
   horn: { freqs: [233, 277], wave: 'sawtooth', lp: 1500, vib: 31, depth: 6, mix: 0.22, level: 0.12 },
   chime: { freqs: [311, 370, 415, 494, 622], wave: 'sawtooth', lp: 2200, vib: 3.5, depth: 1.5, mix: 0.12, level: 0.12 },
+  gong: { bell: true, freqs: [1046, 2580, 4210], every: 0.3 },
 };
 
 export class Sound {
@@ -92,11 +93,22 @@ export class Sound {
     if (!this.ctx) return;
     const ctx = this.ctx, t = ctx.currentTime;
     if (!down) {
-      if (this.voice) { const v = this.voice; v.g.gain.cancelScheduledValues(t); v.g.gain.setTargetAtTime(0.0001, t, 0.07); setTimeout(() => v.nodes.forEach(n => { try { n.stop(); } catch (e) {} }), 600); this.voice = null; }
+      if (this.voice) { this.voice.stop(t); this.voice = null; }
       return;
     }
     if (this.voice) return;
     const V = VOICES[kind] || VOICES.horn;
+    if (V.bell) {
+      // clang, clang, clang: each strike rings on after the button comes up
+      const strike = () => {
+        V.freqs.forEach((f, i) => this.tone(f, 1.4 / (1 + i * 1.5), 0.1 / (1 + i), 'sine'));
+        this.burst({ f: 3800, q: 2, gain: 0.05, dur: 0.02 });
+      };
+      strike();
+      const id = setInterval(strike, V.every * 1000);
+      this.voice = { stop: () => clearInterval(id) };
+      return;
+    }
     const g = ctx.createGain(); g.gain.value = 0.0001; g.connect(this.master);
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = V.lp; lp.connect(g);
     const nodes = [];
@@ -116,6 +128,11 @@ export class Sound {
     }
     nodes.forEach(n => n.start(t));
     g.gain.setTargetAtTime(V.level, t, 0.05);
-    this.voice = { g, nodes };
+    this.voice = {
+      stop: at => {
+        g.gain.cancelScheduledValues(at); g.gain.setTargetAtTime(0.0001, at, 0.07);
+        setTimeout(() => nodes.forEach(n => { try { n.stop(); } catch (e) {} }), 600);
+      },
+    };
   }
 }

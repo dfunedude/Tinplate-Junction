@@ -18,7 +18,7 @@ export function liveryMat(key, planar, opts, draw) {
   return liveryMatCache.get(key);
 }
 
-// Matched sets (passenger, subway, high-speed): the engine and its cars list the same schemes in the
+// Matched sets (passenger, subway, high-speed, trolley): the engine and its cars list the same schemes in the
 // same order, so a whole train can wear one scheme.
 const PAX = [
   { name: 'Lakeshore silver', swatch: 0x2b4c8c, base: 0xb4b9bd, metal: 0.6, stripe: 0x2b4c8c, accent: 0xc9a54a, ink: '#1d2a44', ink2: '#eef0ea', road: 'LAKESHORE' },
@@ -34,6 +34,12 @@ const EXPRESS = [
   { name: 'White & red', swatch: 0xb5302a, base: 0xebe8e1, metal: 0.15, band: 0xb5302a, stripe: 0x26282b, ink: '#26282b', ink2: '#f3efe6', road: 'TINPLATE EXPRESS' },
   { name: 'White & blue', swatch: 0x274a86, base: 0xe7e9ea, metal: 0.15, band: 0x274a86, stripe: 0xc9a54a, ink: '#1d2a44', ink2: '#f3efe6', road: 'LAKESHORE EXPRESS' },
   { name: 'Silver & teal', swatch: 0x1d6f6c, base: 0xaab0b3, metal: 0.6, band: 0x1d6f6c, stripe: 0xe9e4d6, ink: '#1e2426', ink2: '#eef0ea', road: 'NORTHERN EXPRESS' },
+];
+// The trolleys: lower panels in the line's colour, a cream window band, and a lined-out belt rail.
+const TRACTION = [
+  { name: 'Traction orange', swatch: 0xd2702a, base: 0xd2702a, band: 0xe9dfc6, stripe: 0x2b2522, roof: 0x5a5f61, ink: '#2b2522', ink2: '#f1e7cf', road: 'MILL CREEK RAILWAY', dest: 'JUNCTION' },
+  { name: 'Pullman green', swatch: 0x3a5440, base: 0x3a5440, band: 0xdcd2b2, stripe: 0xc9a54a, roof: 0x4a4d4f, ink: '#3a5440', ink2: '#e6cf8a', road: 'LAKESHORE TRACTION', dest: 'LAKESHORE' },
+  { name: 'Cherry red', swatch: 0xa22f2a, base: 0xa22f2a, band: 0xe8dcc0, stripe: 0xc9a54a, roof: 0x55595b, ink: '#a22f2a', ink2: '#ecd48e', road: 'TINPLATE STREET RY.', dest: 'MAIN ST.' },
 ];
 const numbered = (list, nums) => list.map((l, i) => ({ ...l, num: nums[i] }));
 
@@ -88,4 +94,7 @@ export const LIVERIES = {
   highspeed: numbered(EXPRESS, ['2001', '2101', '2201']),
   hscoach: numbered(EXPRESS, ['3001', '3101', '3201']),
   hstail: numbered(EXPRESS, ['2002', '2102', '2202']),
+  trolley: numbered(TRACTION, ['1907', '2112', '2350']),
+  trolleycar: numbered(TRACTION, ['1908', '2113', '2351']),
+  opencar: numbered(TRACTION, ['24', '31', '46']),
 };

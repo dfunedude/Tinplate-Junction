@@ -3,6 +3,9 @@ import { clamp } from '../core/geometry.js';
 import { layout, sound, train, state } from '../state.js';
 import { $ } from './dom.js';
 
+// what the signal button sounds on the current engine (the voices are in fx/sound)
+const SIGNAL_LABELS = { whistle: 'Whistle', gong: 'Bell' };
+
 export function updateStat() {
   const n = layout.pieces.length;
   const inches = layout.pieces.reduce((s, p) => s + p.def.routes.reduce((a, r) => a + r.len, 0), 0);
@@ -36,7 +39,7 @@ export function updateButtons() {
   $('btnUndo').disabled = !state.undo.length;
   const loco = train.consist[0] ? train.consist[0].type : null;
   document.querySelectorAll('[data-engine]').forEach(b => b.classList.toggle('is-on', b.dataset.engine === loco));
-  const spec = train.locoSpec;
-  $('whistleLabel').textContent = spec && spec.sound === 'whistle' ? 'Whistle' : 'Horn';
-  $('btnWhistle').setAttribute('aria-label', spec && spec.sound === 'whistle' ? 'Whistle' : 'Horn');
+  const spec = train.locoSpec, label = SIGNAL_LABELS[spec && spec.sound] || 'Horn';
+  $('whistleLabel').textContent = label;
+  $('btnWhistle').setAttribute('aria-label', label);
 }

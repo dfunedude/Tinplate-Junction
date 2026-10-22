@@ -6,7 +6,8 @@ A 3D tabletop toy train layout that runs in the browser. Lay O27 tubular three-r
 
 - **Run**: slide the throttle to apply volts. Direction cuts power and flips the train, like the old E-unit reverser. Tap a switch's lantern to throw it. The lamp button darkens the room.
 - **Track**: tap a piece to add it at the glowing open end, or tap any ring to build from that end. Drag pieces and their ends snap together. Rotate, Delete, Undo and preset layouts are on the second row.
-- **Train**: choose a kind of train (freight, passenger, subway or high-speed), then pick an engine and add cars. Each kind keeps its own train, so switching back brings yours out again. Tap the engine again, or a car in your train, to repaint it, or × to uncouple a car. Tap any track to set the train down there. Passenger cars light up when the track has power.
+- **Train**: choose a kind of train (freight, passenger, subway, high-speed or trolley), then pick an engine and add cars. Each kind keeps its own train, so switching back brings yours out again. Tap the engine again, or a car in your train, to repaint it, or × to uncouple a car. Tap any track to set the train down there. Passenger cars light up when the track has power.
+- **Trolleys**: bringing out a trolley strings overhead wire over the whole layout, mast by mast, and the trolley raises the pole behind it to the wire. The pole swaps ends when you reverse. Put the trolley away and the wire comes down again.
 - **Keys**: ↑ ↓ throttle · D direction · W whistle · F follow cam · R rotate · Delete · Ctrl+Z undo · 1 2 3 tabs
 
 ## Working on it
@@ -27,13 +28,13 @@ npm run build    # writes dist/tinplate-junction.html, the single-file page for 
 | --- | --- |
 | `index.html` | Page markup: the 3D view, the control deck and the help card |
 | `src/main.js` | Boot, resize and the frame loop |
-| `src/state.js` | The live layout, train, sound and smoke, and what the controls are doing |
+| `src/state.js` | The live layout, train, trolley wire, sound and smoke, and what the controls are doing |
 | `src/storage.js` | Saving the layout, train and settings in the browser |
-| `src/core/` | Track math with no rendering: dimensions, the piece catalogue, the layout graph, preset layouts, the train's path |
+| `src/core/` | Track math with no rendering: dimensions, the piece catalogue, the layout graph, preset layouts, the train's path, where the trolley wire and its masts go, the scenery's keep-out zones |
 | `src/render/` | Renderer, scene, camera and lights; procedural textures; materials; the mesh kit; lettering decals |
-| `src/world/` | The table and room, the 3D track pieces, the scenery |
-| `src/stock/` | Locomotives and cars: shared parts, paint schemes, steam, diesels, freight cars, the passenger set, the subway, the high-speed set, and the catalogue |
-| `src/sim/` | The train: consist, motion along the track, reversing, headlight |
+| `src/world/` | The table and room, the 3D track pieces, the scenery, the overhead trolley wire |
+| `src/stock/` | Locomotives and cars: shared parts, paint schemes, steam, diesels, freight cars, the passenger set, the subway, the high-speed set, the trolleys, and the catalogue |
+| `src/sim/` | The train: consist, motion along the track, reversing, headlight, trolley poles |
 | `src/fx/` | Smoke and synthesized sound |
 | `src/ui/` | Control deck, camera, track editor, Train tab, pointer input, icons |
 | `src/styles/` | Colour and font tokens, the overlay on the 3D view, the control deck |
@@ -46,7 +47,8 @@ Common changes:
 - **A new engine or car**: write its builder in `src/stock/`, add it to `VEHICLES` in `src/stock/catalog.js` with the kind of train it belongs to (its button then appears on that kind's row), add its paint schemes to `src/stock/liveries.js`, and draw its chip in `src/ui/icons.js`.
 - **A new kind of train**: add it to `FAMILIES` in `src/stock/catalog.js`, with the train it starts with.
 - **A new track piece**: define it in `src/core/pieces.js`, model it in `src/world/track.js`, and add a palette button in `src/ui/icons.js`.
-- **Scenery**: `src/world/scenery.js`. If something moves, update its keep-out zone in `tests/presets.test.js`.
+- **Scenery**: `src/world/scenery.js`. If something moves, update its keep-out zone in `src/core/keepout.js`, which keeps preset track and trolley wire masts off it.
+- **A vehicle with trolley poles**: return `poles` from its builder (see `trolleyPole` in `src/stock/trolley.js`). `src/sim/train.js` raises the trailing pole to the wire, and the wire goes up whenever the train has such a vehicle.
 - **Sounds**: `src/fx/sound.js`. **Colours and fonts**: `src/styles/base.css`.
 
 ## How the build works

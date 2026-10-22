@@ -9,7 +9,7 @@ import { bumperLamp } from './world/track.js';
 import { transformerHandle, NIGHT_POOLS, buildScenery } from './world/scenery.js';
 import { VEHICLES, FAMILIES } from './stock/catalog.js';
 import { VMAX } from './sim/train.js';
-import { layout, views, sound, smoke, train, state } from './state.js';
+import { layout, views, sound, smoke, train, overhead, state } from './state.js';
 import { save, loadSaved, savedConsist, savedParked } from './storage.js';
 import { $, toast } from './ui/dom.js';
 import { setThrottle, updateDir, updateSoundBtn, setLamp, updateButtons } from './ui/hud.js';
@@ -56,6 +56,9 @@ function frame(now) {
     scene.fog.color.copy(scene.background);
     smoke.mat.uniforms.uColor.value.setHex(0xdedbd4).multiplyScalar(0.3 + 0.7 * L);
   }
+  // the trolley wire goes up over the layout while a trolley is out, and comes down after it
+  overhead.update(dt, layout, train.needsWire, train.headPose());
+  train.wireUp = overhead.strung;
   train.update(dt, state.throttle);
   if (train.onTrack) train.lights(state.throttle, state.dark);
   if (transformerHandle) transformerHandle.rotation.y += ((0.6 - state.throttle * 3.0) - transformerHandle.rotation.y) * Math.min(1, dt * 12);
@@ -114,4 +117,4 @@ function boot() {
 }
 boot();
 // test handle for scripted checks; release builds drop this line (see tools/build.mjs)
-window.__tj = { layout, train, view, camera, state, views, scene, renderer, sound, setMode, setEngine, addCar, setThrottle, setLamp, loadPreset, addPiece, throwSwitch, applyConsist, rotateSel, syncViews };
+window.__tj = { layout, train, overhead, view, camera, state, views, scene, renderer, sound, setMode, setEngine, addCar, setThrottle, setLamp, loadPreset, addPiece, throwSwitch, applyConsist, rotateSel, syncViews };

@@ -22,6 +22,7 @@ A browser toy-train game on three.js 0.160 with no npm dependencies. The source 
 - Make materials with `stdMat`, `paint`, `liveryMat` or `glowMat` (`src/render/materials.js`), never `new MeshStandardMaterial` directly. Those helpers start a material at the room lamp's current level and register it so it dims with the room; anything else stays daylight-bright at night.
 - A material made for one vehicle (lit windows, lamps) goes in the vehicle's `lamps` list, or on a decal or headlight, so `Train.setConsist` releases it through `dropMat` when the train changes.
 - New vehicles go in `VEHICLES` with a `set` (a key of `FAMILIES`); the Train tab builds its buttons from that.
+- A vehicle that returns `poles` is a trolley: `sim/train.js` aims its poles at the wire, and `world/overhead.js` strings the wire while one is in the train. Masts are planned in `core/wire.js` and keep off the scenery zones in `core/keepout.js`.
 
 ## Publishing
 

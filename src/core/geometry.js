@@ -15,6 +15,7 @@ export const BUMPER_LEN = 3.4;
 export const TABLE_W = 96;                      // an 8 x 5 ft layout board
 export const TABLE_D = 60;
 export const RAIL_TOP = 0.68;                   // O27 rail height, 11/16"
+export const WIRE_Y = 7.6;                      // trolley wire height over the table
 
 export function normAng(a) { a %= TAU; if (a > PI) a -= TAU; if (a <= -PI) a += TAU; return a; }
 export function rot2(x, z, r) { const c = Math.cos(r), s = Math.sin(r); return [x * c - z * s, x * s + z * c]; }
