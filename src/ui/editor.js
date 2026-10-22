@@ -1,43 +1,26 @@
 // ===== ui/editor: laying, dragging, rotating and deleting track; switches; presets =====
-import * as THREE from 'three';
 import { PI, TAU, TABLE_W, TABLE_D, normAng, clamp } from '../core/geometry.js';
 import { APPEND } from '../core/pieces.js';
 import { PRESETS, appendPiece, buildPreset } from '../core/presets.js';
-import { PieceView, markerRoot, ringGeo, arrowGeo, markerMat, markerActiveMat, markerHitGeo } from '../world/track.js';
+import { PieceView, showMarkers } from '../world/track.js';
 import { layout, views, sound, train, overhead, state } from '../state.js';
 import { save } from '../storage.js';
 import { toast } from './dom.js';
 import { updateStat, updateButtons } from './hud.js';
 import { view } from './camera.js';
 
-export const markers = [];
 export function syncViews() {
   for (const [p, v] of views) if (!layout.pieces.includes(p)) { v.dispose(); views.delete(p); }
   for (const p of layout.pieces) { if (!views.has(p)) views.set(p, new PieceView(p)); else views.get(p).sync(); }
   overhead.invalidate();
   refreshMarkers(); highlight(); updateStat(); updateButtons();
 }
+// the open ends get markers in Track mode; the active one (where the next piece goes) stands out
 export function refreshMarkers() {
-  markerRoot.clear();
-  markers.length = 0;
   const free = layout.freeEnds();
   if (state.active && !free.some(f => f.p === state.active.p && f.i === state.active.i)) state.active = null;
-  if (state.mode !== 'track') return;
-  for (const f of free) {
-    const on = !!state.active && state.active.p === f.p && state.active.i === f.i;
-    const g = new THREE.Group();
-    const ring = new THREE.Mesh(ringGeo, on ? markerActiveMat : markerMat);
-    const arrow = new THREE.Mesh(arrowGeo, on ? markerActiveMat : markerMat);
-    const hit = new THREE.Mesh(markerHitGeo, markerMat);
-    hit.visible = false; hit.userData.end = f;
-    ring.renderOrder = arrow.renderOrder = 3;
-    g.add(ring, arrow, hit);
-    g.position.set(f.x + Math.cos(f.h) * 1.7, 0.08, f.z + Math.sin(f.h) * 1.7);
-    g.rotation.y = -f.h;
-    markerRoot.add(g);
-    markers.push({ g, hit, on });
-  }
-  markerRoot.updateMatrixWorld(true);
+  const a = state.active;
+  showMarkers(state.mode === 'track' ? free : [], f => !!a && a.p === f.p && a.i === f.i);
 }
 export function highlight() {
   for (const [p, v] of views) {

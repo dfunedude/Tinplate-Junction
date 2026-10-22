@@ -21,15 +21,17 @@ export function normAng(a) { a %= TAU; if (a > PI) a -= TAU; if (a <= -PI) a += 
 export function rot2(x, z, r) { const c = Math.cos(r), s = Math.sin(r); return [x * c - z * s, x * s + z * c]; }
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// A route's at(t) gives the point t inches along it, as { x, z, h }. Pass out to fill an object you
+// already have instead of making a new one (the train samples its path many times a frame).
 export function lineRoute(a, b, x0, z0, h, len) {
   const c = Math.cos(h), s = Math.sin(h);
-  return { a, b, len, kind: 'line', at(t) { return { x: x0 + c * t, z: z0 + s * t, h }; } };
+  return { a, b, len, kind: 'line', at(t, out = {}) { out.x = x0 + c * t; out.z = z0 + s * t; out.h = h; return out; } };
 }
 export function arcRoute(a, b, x0, z0, h0, R, ang, turn) {
   const cx = x0 - Math.sin(h0) * R * turn, cz = z0 + Math.cos(h0) * R * turn;
   return {
     a, b, len: R * ang, kind: 'arc',
-    at(t) { const h = h0 + turn * t / R; return { x: cx + turn * R * Math.sin(h), z: cz - turn * R * Math.cos(h), h }; },
+    at(t, out = {}) { const h = h0 + turn * t / R; out.x = cx + turn * R * Math.sin(h); out.z = cz - turn * R * Math.cos(h); out.h = h; return out; },
   };
 }
 export const E = (x, z, h) => ({ x, z, h });

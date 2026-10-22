@@ -1,26 +1,25 @@
 // ===== main: boot, resize and the frame loop =====
-import * as THREE from 'three';
 import { PI } from './core/geometry.js';
 import { buildPreset } from './core/presets.js';
-import { canvas, renderer, scene, ROOM_COLOR, camera, hemi, sun, fill, LIGHT_BASE } from './render/stage.js';
-import { MATS, OWN_MATS, room } from './render/materials.js';
+import { canvas, renderer, scene, camera, pace } from './render/stage.js';
+import { setRoomLight } from './render/materials.js';
 import { buildRoom } from './world/room.js';
-import { bumperLamp } from './world/track.js';
-import { transformerHandle, NIGHT_POOLS, buildScenery } from './world/scenery.js';
+import { animateTrack } from './world/track.js';
+import { buildScenery, updateScenery } from './world/scenery.js';
 import { VEHICLES, FAMILIES } from './stock/catalog.js';
-import { VMAX } from './sim/train.js';
 import { layout, views, sound, smoke, train, overhead, state } from './state.js';
 import { save, loadSaved, savedConsist, savedParked } from './storage.js';
 import { $, toast } from './ui/dom.js';
-import { setThrottle, updateDir, updateSoundBtn, setLamp, updateButtons } from './ui/hud.js';
+import { setThrottle, updateReadout, updateDir, updateSoundBtn, setLamp, updateButtons } from './ui/hud.js';
 import { view, resetView, stepCamera } from './ui/camera.js';
-import { markers, syncViews, addPiece, rotateSel, autoPlaceTrain, throwSwitch, loadPreset } from './ui/editor.js';
+import { syncViews, addPiece, rotateSel, autoPlaceTrain, throwSwitch, loadPreset } from './ui/editor.js';
 import { applyConsist, setEngine, addCar, renderConsist, showFamily } from './ui/consist.js';
 import { buildControls, setMode } from './ui/controls.js';
 
 train.onThrow = p => { sound.clack(); save(); };
 train.onBump = v => sound.thud(v);
 train.onJoint = () => sound.joint(train.speed);
+const trainPose = () => train.headPose();
 
 function resize() {
   const r = $('stage').getBoundingClientRect();
@@ -33,57 +32,47 @@ function resize() {
 }
 resize.auto = true;
 
-// ---------- main loop ----------
-let last = performance.now(), readoutT = 0, smokeAcc = 0;
-const _v = new THREE.Vector3();
-function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  // room lamp fades
+// the room lamp fades over 0.7 s
+function fadeLamp(dt) {
   const goal = state.lampOn ? 0 : 1;
-  if (state.dark !== goal) {
-    state.dark += Math.sign(goal - state.dark) * Math.min(Math.abs(goal - state.dark), dt / 0.7);
-    const L = 1 - state.dark;
-    hemi.intensity = LIGHT_BASE.hemi * (0.1 + 0.9 * L);
-    sun.intensity = LIGHT_BASE.sun * (0.06 + 0.94 * L);
-    fill.intensity = LIGHT_BASE.fill * (0.25 + 0.75 * L);
-    room.env = 0.15 + 0.85 * L;
-    for (const m of MATS) m.envMapIntensity = m.userData.env * room.env;
-    for (const m of OWN_MATS) m.envMapIntensity = m.userData.env * room.env;
-    for (const m of NIGHT_POOLS) m.opacity = m.userData.peak * state.dark;
-    $('app').classList.toggle('is-dark', state.dark > 0.5);
-    scene.background.copy(ROOM_COLOR).multiplyScalar(0.45 + 0.55 * L);
-    scene.fog.color.copy(scene.background);
-    smoke.mat.uniforms.uColor.value.setHex(0xdedbd4).multiplyScalar(0.3 + 0.7 * L);
-  }
+  if (state.dark === goal) return;
+  state.dark += Math.sign(goal - state.dark) * Math.min(Math.abs(goal - state.dark), dt / 0.7);
+  const L = 1 - state.dark;
+  setRoomLight(L);
+  smoke.setLight(L);
+  $('app').classList.toggle('is-dark', state.dark > 0.5);
+}
+
+// Compile every shader the game will use now, while it boots, rather than when something first
+// shows up mid-run (a headlight's glow, the smoke, the trolley wire) and that frame stalls on it.
+// renderer.compile skips hidden objects, so show everything for the moment it takes.
+function warmShaders() {
+  const hidden = [];
+  scene.traverse(o => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+  renderer.compile(scene, camera);
+  for (const o of hidden) o.visible = false;
+}
+
+// ---------- main loop ----------
+// Each part of the world animates itself; this only runs them in order and draws the frame.
+let last = performance.now(), saveT = 0;
+function frame(now) {
+  const ms = now - last, dt = Math.min(0.05, ms / 1000);
+  last = now;
+  if (pace(ms)) resize();
+  fadeLamp(dt);
   // the trolley wire goes up over the layout while a trolley is out, and comes down after it
-  overhead.update(dt, layout, train.needsWire, train.headPose());
+  overhead.update(dt, layout, train.needsWire, trainPose);
   train.wireUp = overhead.strung;
   train.update(dt, state.throttle);
   if (train.onTrack) train.lights(state.throttle, state.dark);
-  if (transformerHandle) transformerHandle.rotation.y += ((0.6 - state.throttle * 3.0) - transformerHandle.rotation.y) * Math.min(1, dt * 12);
-  bumperLamp.emissiveIntensity = state.throttle > 0.04 ? 0.6 + 1.6 * state.throttle : 0.15;
-  // the smoke unit heats with track voltage and puffs harder with speed
-  const loco = train.loco;
-  if (train.onTrack && loco && loco.smoke && state.throttle > 0.08) {
-    smokeAcc += dt * (2.5 + train.speed * 0.45) * Math.min(1, state.throttle * 2);
-    while (smokeAcc > 1) {
-      smokeAcc -= 1;
-      _v.copy(loco.smoke); loco.body.localToWorld(_v);
-      smoke.emit(_v.x, _v.y, _v.z, train.speed / VMAX);
-    }
-  }
-  smoke.update(dt);
+  animateTrack(dt, now, state.throttle);
+  updateScenery(dt, state.throttle, state.dark);
+  smoke.update(dt, train, state.throttle);
   sound.update(train.onTrack ? train.speed : 0, state.throttle);
-  for (const v of views.values()) v.tick(dt);
-  if (markers.length) { const s = 1 + 0.12 * Math.sin(now / 180); for (const m of markers) if (m.on) m.g.scale.setScalar(s); }
-  if (train.speed > 0.5 && (frame.saveT = (frame.saveT || 0) - dt) <= 0) { frame.saveT = 4; save(); }
-  readoutT -= dt;
-  if (readoutT <= 0) {
-    readoutT = 0.15;
-    const mph = Math.round((train.onTrack ? train.speed : 0) * 48 / 17.6);
-    $('readout').innerHTML = `<b>${(state.throttle * 18).toFixed(1)} V</b> · ${mph} smph`;
-  }
+  updateReadout(dt);
+  // keep where the train is, so a reload puts it back there
+  if (train.speed > 0.5 && (saveT -= dt) <= 0) { saveT = 4; save(); }
   stepCamera(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -111,6 +100,7 @@ function boot() {
   new ResizeObserver(resize).observe($('stage'));
   resize();
   resetView(false);
+  warmShaders();
   canvas.addEventListener('pointerdown', () => { resize.auto = false; }, { once: true });
   if (!saved) setTimeout(() => toast('Slide the throttle to get the train rolling.', 3600), 600);
   requestAnimationFrame(t => { last = t; frame(t); });

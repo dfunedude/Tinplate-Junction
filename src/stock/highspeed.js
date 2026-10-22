@@ -1,12 +1,11 @@
 // ===== stock/highspeed: a high-speed trainset, with power cars at both ends and coaches between =====
 import * as THREE from 'three';
 import { PI, clamp } from '../core/geometry.js';
-import { textTexture } from '../render/textures.js';
-import { paint, M, glowMat } from '../render/materials.js';
-import { UNIT, Kit, loftGeo, mirrorX } from '../render/kit.js';
+import { css, textTexture } from '../render/textures.js';
+import { paint, M, glowMat, liveryMat } from '../render/materials.js';
+import { UNIT, Kit, mergeList, xf, loftGeo, mirrorX } from '../render/kit.js';
 import { letter } from '../render/decals.js';
 import { bodyCoupler, dieselTruck, passengerTruck, carTrucks, headlight, windowRow, gangway } from './parts.js';
-import { css, liveryMat } from './liveries.js';
 
 const HW = 1.27, HB = 1.0, HTOP = 3.65;   // half-width, floor and roof of the whole set
 const NOSE0 = 1.0, NOSE_LEN = 5.45;       // where the power car's nose starts, and how long it runs
@@ -75,12 +74,11 @@ function powerCar(liv, li, rear) {
       : [{ off: 3.6, ...dieselTruck(0) }, { off: -3.6, ...dieselTruck(-1, 6.1 - 3.6) }],
   };
   if (rear) {
+    // a pair of tail lamps, one mesh (its geometry goes with the car, see disposeModel)
     const tail = glowMat(0xd2452e, 0);
-    for (const s of [-1, 1]) {
-      const lamp = new THREE.Mesh(UNIT.sphere, tail);
-      lamp.scale.setScalar(0.07); lamp.position.set(-6.43, 1.32, s * 0.16);
-      body.add(lamp);
-    }
+    const lamps = new THREE.Mesh(mergeList([-1, 1].map(s => xf(UNIT.sphere, -6.43, 1.32, s * 0.16, 0.07, 0.07, 0.07))), tail);
+    lamps.userData.owned = true;
+    body.add(lamps);
     v.lamps = [tail];
   } else v.head = headlight(body, 6.43, 1.32);
   return v;

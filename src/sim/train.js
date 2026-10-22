@@ -4,20 +4,13 @@ import { PI, RAIL_TOP, WIRE_Y } from '../core/geometry.js';
 import { TrackPath, nearestTrackPoint } from '../core/path.js';
 import { scene } from '../render/stage.js';
 import { dropMat } from '../render/materials.js';
+import { disposeModel } from '../render/kit.js';
+import { showGlow } from '../render/decals.js';
 import { VEHICLES, buildVehicle } from '../stock/catalog.js';
 
 export const VMAX = 34;          // inches per second at full throttle
 const START_V = 0.12;     // the motor needs a few volts before it turns
 const HEADLIGHT_CD = 12;  // headlight spotlight strength at full volts
-
-function disposeTree(obj) {
-  obj.traverse(o => {
-    if (!o.isMesh && !o.isSprite) return;
-    if (o.userData.owned) o.geometry.dispose();
-    if (o.userData.ownMat) { if (o.material.map) o.material.map.dispose(); dropMat(o.material); }
-    if (o.userData.ownMatKeepMap) dropMat(o.material);
-  });
-}
 
 export class Train {
   constructor(layout) {
@@ -32,6 +25,7 @@ export class Train {
     this.odo = 0; this.onTrack = false; this.length = 0; this.lastPose = null;
     this.onThrow = null; this.onBump = null; this.onJoint = null;
     this.wireUp = false;   // the trolley wire is strung (world/overhead), so trolley poles can go up
+    this.needsWire = false;   // a trolley in the train needs wire over the track
     this._a = {}; this._b = {}; this._c = {}; this._d = {};
     // One real spotlight follows the lead engine's headlight. It lives in the scene root and only its
     // intensity changes, so the number of lights (and the compiled shaders) never changes.
@@ -41,14 +35,12 @@ export class Train {
   }
   get loco() { return this.vehicles[0]; }
   get locoSpec() { return this.consist[0] ? VEHICLES[this.consist[0].type] : null; }
-  // a trolley in the train needs wire over the track
-  get needsWire() { return this.vehicles.some(v => v.poles); }
   setConsist(list) {
     this.consist = list.map(c => ({ type: c.type, li: c.li | 0 }));
     // a repainted trolley keeps its poles where they were
     const poles = this.vehicles.map(v => v.poles && v.poles.map(p => p.up));
     for (const v of this.vehicles) {
-      for (const o of [v.body, ...v.trucks.map(t => t.g)]) { this.group.remove(o); disposeTree(o); }
+      for (const o of [v.body, ...v.trucks.map(t => t.g)]) { this.group.remove(o); disposeModel(o); }
       if (v.lamps) for (const m of v.lamps) dropMat(m);   // lit windows and marker lamps
     }
     this.vehicles = [];
@@ -62,6 +54,7 @@ export class Train {
       if (v.poles && poles[i]) v.poles.forEach((p, j) => { p.up = poles[i][j] || 0; });
     });
     this.length = this.vehicles.reduce((s, v) => s + v.front + v.back, 0);
+    this.needsWire = this.vehicles.some(v => v.poles);
     if (this.onTrack) { if (this.fit()) this.pose(); else this.lift(); }
   }
   fit() {
@@ -158,13 +151,14 @@ export class Train {
       const dx = A.x - B.x, dz = A.z - B.z, f = -v.pivots[1] / (v.pivots[0] - v.pivots[1]);
       v.body.position.set(B.x + dx * f, RAIL_TOP, B.z + dz * f);
       v.body.rotation.y = -Math.atan2(dz, dx);
+      // the group sits at the origin, so the body's own matrix places it on the table (lights() and the smoke use it)
+      v.body.updateMatrix();
       for (const t of v.trucks) {
         P.at(o + t.off, C);
         t.g.position.set(C.x, RAIL_TOP, C.z);
         t.g.rotation.y = -C.h;
         if (t.lastSeg && t.lastSeg !== C.seg && this.onJoint) this.onJoint();
         t.lastSeg = C.seg;
-        for (const a of t.axles) a.m.rotation.z = -this.odo / a.r;
       }
       for (const w of v.spin) w.m.rotation.z = -this.odo / w.r;
       if (v.poles) this.aimPoles(v, o);
@@ -199,9 +193,9 @@ export class Train {
         if (!h) continue;
         const lit = h === ahead ? on : 0;
         h.lensM.emissiveIntensity = lit * 3.2;
-        h.glow.material.opacity = lit * (0.3 + 0.6 * dark);
+        showGlow(h.glow, lit * (0.3 + 0.6 * dark));
         h.glow.scale.setScalar(1.4 + lit * (1.4 + 1.6 * dark));
-        h.pool.material.opacity = lit * 0.22 * dark;
+        showGlow(h.pool, lit * 0.22 * dark);
       }
       if (v.lamps) {
         // some cars (the Trolley) only light their windows once the room lamp is off
@@ -211,16 +205,15 @@ export class Train {
       // now and then the trolley wheel arcs on the wire, a blue flash best seen after dark
       if (v.poles) for (const p of v.poles) {
         const arc = on && p.up > 0.98 && this.speed > 3 && Math.random() < 0.2;
-        p.spark.material.opacity = arc ? Math.random() * (0.3 + 0.7 * dark) : 0;
+        showGlow(p.spark, arc ? Math.random() * (0.3 + 0.7 * dark) : 0);
       }
     }
     // aim the beam from the lit lens down the track to a spot on the table about 30 inches ahead
     const lead = this.vehicles[0], head = lead && this.headFor(lead);
     if (head) {
-      lead.body.updateMatrixWorld();
-      const p = head.pos;
-      lead.body.localToWorld(this._lp.copy(p));
-      lead.body.localToWorld(this._lt.set(p.x + 30 * head.dir, -RAIL_TOP, p.z));
+      const p = head.pos, m = lead.body.matrix;
+      this._lp.copy(p).applyMatrix4(m);
+      this._lt.set(p.x + 30 * head.dir, -RAIL_TOP, p.z).applyMatrix4(m);
       this.beam.position.copy(this._lp);
       this.beam.target.position.copy(this._lt);
       this.beam.target.updateMatrixWorld();

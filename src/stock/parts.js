@@ -4,13 +4,16 @@ import { PI, RAIL_TOP } from '../core/geometry.js';
 import { TEX } from '../render/textures.js';
 import { M, glowMat } from '../render/materials.js';
 import { UNIT, mergeList, Kit, xf } from '../render/kit.js';
-import { decalGeo } from '../render/decals.js';
+import { glowSprite, lightPool } from '../render/decals.js';
 
 const WHEEL_Z = 0.66;
 
 // ---- wheels, trucks, couplers ----
+// A wheel is round, so a turning axle looks just like a still one: plain axles are merged into their
+// truck, and steam drivers into the engine's body. Only the spoked faces of the drivers, which show
+// them turning, are meshes of their own (the spin list a builder returns).
 const axleCache = new Map();
-function axle(r) {
+function axleGeo(r) {
   if (!axleCache.has(r)) {
     const parts = [];
     for (const s of [-1, 1]) {
@@ -20,12 +23,10 @@ function axle(r) {
     parts.push(xf(UNIT.cylZ, 0, 0, 0, 0.05, 0.05, 1.3));
     axleCache.set(r, mergeList(parts));
   }
-  const m = new THREE.Mesh(axleCache.get(r), M.steel);
-  m.castShadow = true;
-  return m;
+  return axleCache.get(r);
 }
 const driverCache = new Map();
-export function driverSet(r) {
+function driverGeo(r) {
   if (!driverCache.has(r)) {
     const tire = [], face = [];
     for (const s of [-1, 1]) {
@@ -39,11 +40,22 @@ export function driverSet(r) {
     tire.push(xf(UNIT.cylZ, 0, 0, 0, 0.06, 0.06, 1.3));
     driverCache.set(r, { tire: mergeList(tire), face: mergeList(face) });
   }
-  const c = driverCache.get(r), g = new THREE.Group();
-  const t = new THREE.Mesh(c.tire, M.nickel), f = new THREE.Mesh(c.face, M.driverFace);
-  t.castShadow = f.castShadow = true;
-  g.add(t, f);
-  return g;
+  return driverCache.get(r);
+}
+// wheelsets of radius r at each x along a truck or a body, standing on the rails
+export function axles(k, xs, r) {
+  for (const x of xs) k.put(M.steel, axleGeo(r), x, r, 0);
+}
+// Steam drivers of radius r at each x: the tires go in the kit, and the faces come back as the spin
+// list, to add to the body once it's built. The faces sit on the tires, so they cast no shadow.
+export function drivers(k, xs, r) {
+  const { tire, face } = driverGeo(r);
+  return xs.map(x => {
+    k.put(M.nickel, tire, x, r, 0);
+    const m = new THREE.Mesh(face, M.driverFace);
+    m.position.set(x, r, 0);
+    return { m, r };
+  });
 }
 // Truck-mounted knuckle coupler with the dangling armature plate of a magnetic coupler.
 export function coupler(k, dir, reach, y = 0.62) {
@@ -57,9 +69,6 @@ export function bodyCoupler(k, x, dir) {
   k.box(M.plastic, 0.5, 0.13, 0.24, x - dir * 0.25, 0.64, 0);
   k.box(M.plastic, 0.34, 0.42, 0.56, x - dir * 0.17, 0.66, 0);
 }
-export function withAxles(g, xs, r) {
-  return xs.map(x => { const m = axle(r); m.position.set(x, r, 0); g.add(m); return { m, r }; });
-}
 export function freightTruck(dir, reach) {
   const k = new Kit(), r = 0.32;
   for (const s of [-1, 1]) {
@@ -69,8 +78,8 @@ export function freightTruck(dir, reach) {
   }
   k.box(M.plastic, 0.44, 0.2, 1.64, 0, 0.62, 0);
   if (dir) coupler(k, dir, reach);
-  const g = k.build();
-  return { g, axles: withAxles(g, [-0.56, 0.56], r) };
+  axles(k, [-0.56, 0.56], r);
+  return { g: k.build() };
 }
 export function dieselTruck(dir, reach) {
   const k = new Kit(), r = 0.42;
@@ -82,8 +91,8 @@ export function dieselTruck(dir, reach) {
   }
   k.box(M.plastic, 0.6, 0.24, 1.7, 0, 0.84, 0);
   if (dir) coupler(k, dir, reach);
-  const g = k.build();
-  return { g, axles: withAxles(g, [-0.78, 0.78], r) };
+  axles(k, [-0.78, 0.78], r);
+  return { g: k.build() };
 }
 // Passenger truck: a longer wheelbase, coil springs over the journal boxes and a deep bolster.
 export function passengerTruck(dir, reach) {
@@ -98,8 +107,8 @@ export function passengerTruck(dir, reach) {
   }
   k.box(M.plastic, 0.56, 0.2, 1.7, 0, 0.66, 0);
   if (dir) coupler(k, dir, reach);
-  const g = k.build();
-  return { g, axles: withAxles(g, [-0.72, 0.72], r) };
+  axles(k, [-0.72, 0.72], r);
+  return { g: k.build() };
 }
 export function carTrucks(off, front, back, kind = freightTruck) {
   return [{ off, ...kind(1, front - off) }, { off: -off, ...kind(-1, back - off) }];
@@ -112,16 +121,13 @@ export function headlight(body, x, y, z = 0, dir = 1) {
   const lens = new THREE.Mesh(UNIT.sphere, lensM);
   lens.scale.setScalar(0.14);
   lens.position.set(x, y, z);
-  body.add(lens);
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: 0xffd596, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
+  lens.userData.ownMatKeepMap = true;
+  const glow = glowSprite(0xffd596, 1.4);
   glow.position.set(x + 0.12 * dir, y, z);
-  body.add(glow);
-  const pool = new THREE.Mesh(decalGeo, new THREE.MeshBasicMaterial({ map: TEX.pool, color: 0xffd596, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
-  pool.rotation.set(-PI / 2, 0, dir < 0 ? PI : 0);
-  pool.scale.set(10, 6, 1);
+  const pool = lightPool(TEX.pool, 0xffd596, 10, 6);
+  if (dir < 0) pool.rotation.z = PI;
   pool.position.set(x + 5.2 * dir, -RAIL_TOP + 0.04, z);
-  body.add(pool);
-  lens.userData.ownMatKeepMap = glow.userData.ownMatKeepMap = pool.userData.ownMatKeepMap = true;
+  body.add(lens, glow, pool);
   return { lensM, glow, pool, pos: new THREE.Vector3(x, y, z), dir };
 }
 

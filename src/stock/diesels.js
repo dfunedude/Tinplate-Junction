@@ -1,12 +1,11 @@
 // ===== stock/diesels: the F3 cab unit and the GP9 road switcher =====
 import * as THREE from 'three';
 import { PI } from '../core/geometry.js';
-import { textTexture } from '../render/textures.js';
-import { paint, M } from '../render/materials.js';
+import { css, textTexture } from '../render/textures.js';
+import { paint, M, liveryMat } from '../render/materials.js';
 import { UNIT, Kit, prismX, loftGeo } from '../render/kit.js';
 import { letter } from '../render/decals.js';
 import { bodyCoupler, dieselTruck, carTrucks, headlight } from './parts.js';
-import { css, liveryMat } from './liveries.js';
 
 // ---- F3 cab unit: a lofted body with the bulldog nose ----
 let f3Shell = null;

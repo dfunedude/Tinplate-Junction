@@ -10,6 +10,7 @@ export function canvasTex(c, srgb = true) {
   t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   return t;
 }
+export const css = hex => '#' + hex.toString(16).padStart(6, '0');
 export function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
 export function feltTexture() {

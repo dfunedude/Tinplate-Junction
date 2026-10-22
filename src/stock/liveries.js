@@ -1,22 +1,5 @@
-// ===== stock/liveries: paint schemes, painted as side elevations and projected onto the bodies =====
-import { makeCanvas, canvasTex } from '../render/textures.js';
-import { stdMat } from '../render/materials.js';
-
-export const css = hex => '#' + hex.toString(16).padStart(6, '0');
-
-const liveryMatCache = new Map();
-export function liveryMat(key, planar, opts, draw) {
-  if (!liveryMatCache.has(key)) {
-    const c = makeCanvas(1024, 256), g = c.getContext('2d');
-    const X = x => (x - planar.x0) / (planar.x1 - planar.x0) * c.width;
-    const Y = y => (1 - (y - planar.y0) / (planar.y1 - planar.y0)) * c.height;
-    draw(g, X, Y, c.width, c.height);
-    const m = stdMat({ map: canvasTex(c), ...opts });
-    m.userData.planar = planar;
-    liveryMatCache.set(key, m);
-  }
-  return liveryMatCache.get(key);
-}
+// ===== stock/liveries: the paint schemes of every engine and car =====
+// Each builder paints its scheme as a side elevation with liveryMat (render/materials.js).
 
 // Matched sets (passenger, subway, high-speed, trolley): the engine and its cars list the same schemes in the
 // same order, so a whole train can wear one scheme.

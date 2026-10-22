@@ -31,8 +31,8 @@ npm run build    # writes dist/tinplate-junction.html, the single-file page for 
 | `src/state.js` | The live layout, train, trolley wire, sound and smoke, and what the controls are doing |
 | `src/storage.js` | Saving the layout, train and settings in the browser |
 | `src/core/` | Track math with no rendering: dimensions, the piece catalogue, the layout graph, preset layouts, the train's path, where the trolley wire and its masts go, the scenery's keep-out zones |
-| `src/render/` | Renderer, scene, camera and lights; procedural textures; materials; the mesh kit; lettering decals |
-| `src/world/` | The table and room, the 3D track pieces, the scenery, the overhead trolley wire |
+| `src/render/` | Renderer, scene, camera, lights and the room lamp; procedural textures; materials and paint schemes' textures; the mesh kit; lettering decals and lamp glows |
+| `src/world/` | The table and room, the 3D track pieces (drawn instanced), switch lanterns and open-end markers, the scenery, the overhead trolley wire |
 | `src/stock/` | Locomotives and cars: shared parts, paint schemes, steam, diesels, freight cars, the passenger set, the subway, the high-speed set, the trolleys, and the catalogue |
 | `src/sim/` | The train: consist, motion along the track, reversing, headlight, trolley poles |
 | `src/fx/` | Smoke and synthesized sound |
@@ -44,7 +44,7 @@ npm run build    # writes dist/tinplate-junction.html, the single-file page for 
 Common changes:
 
 - **A new preset layout**: add it to `src/core/presets.js`. The tests check that it closes, fits on the table and clears the scenery.
-- **A new engine or car**: write its builder in `src/stock/`, add it to `VEHICLES` in `src/stock/catalog.js` with the kind of train it belongs to (its button then appears on that kind's row), add its paint schemes to `src/stock/liveries.js`, and draw its chip in `src/ui/icons.js`.
+- **A new engine or car**: write its builder in `src/stock/`, add it to `VEHICLES` in `src/stock/catalog.js` with the kind of train it belongs to (its button then appears on that kind's row), add its paint schemes to `src/stock/liveries.js`, and draw its chip in `src/ui/icons.js`. Build it with a `Kit` so it costs one draw call per material (see CLAUDE.md, "Keeping the frame rate up").
 - **A new kind of train**: add it to `FAMILIES` in `src/stock/catalog.js`, with the train it starts with.
 - **A new track piece**: define it in `src/core/pieces.js`, model it in `src/world/track.js`, and add a palette button in `src/ui/icons.js`.
 - **Scenery**: `src/world/scenery.js`. If something moves, update its keep-out zone in `src/core/keepout.js`, which keeps preset track and trolley wire masts off it.

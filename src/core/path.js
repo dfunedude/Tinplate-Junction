@@ -2,7 +2,7 @@
 import { PI } from './geometry.js';
 
 export class TrackPath {
-  constructor(onThrow) { this.segs = []; this.onThrow = onThrow; }
+  constructor(onThrow) { this.segs = []; this.onThrow = onThrow; this._q = {}; }
   seg(p, r, d, s0) { return { p, r, d, len: p.def.routes[r].len, s0 }; }
   exitEnd(g) { const R = g.p.def.routes[g.r]; return g.d > 0 ? R.b : R.a; }
   entryEnd(g) { const R = g.p.def.routes[g.r]; return g.d > 0 ? R.a : R.b; }
@@ -48,7 +48,7 @@ export class TrackPath {
     let g = this.segs[0];
     for (let i = 1; i < this.segs.length; i++) { if (s >= this.segs[i].s0) g = this.segs[i]; else break; }
     const u = Math.max(0, Math.min(g.len, s - g.s0));
-    const q = g.p.def.routes[g.r].at(g.d > 0 ? u : g.len - u);
+    const q = g.p.def.routes[g.r].at(g.d > 0 ? u : g.len - u, this._q);
     const c = Math.cos(g.p.rot), sn = Math.sin(g.p.rot);
     out.x = g.p.x + q.x * c - q.z * sn;
     out.z = g.p.z + q.x * sn + q.z * c;

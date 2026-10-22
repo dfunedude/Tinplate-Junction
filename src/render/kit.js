@@ -1,6 +1,7 @@
 // ===== render/kit: unit shapes, and helpers that merge many parts into a few meshes =====
 import * as THREE from 'three';
 import { PI } from '../core/geometry.js';
+import { dropMat } from './materials.js';
 
 export const UNIT = {
   box: new THREE.BoxGeometry(1, 1, 1),
@@ -39,7 +40,8 @@ export function mergeList(list, planar) {
   return out;
 }
 
-// A kit collects parts per material and merges them into a few meshes.
+// A kit collects parts per material and merges them into a few meshes: every mesh is a draw call
+// (two with its shadow), so a model costs one per material however many parts it has.
 export class Kit {
   constructor() { this.buckets = new Map(); }
   put(mat, geo, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
@@ -50,6 +52,11 @@ export class Kit {
     this.buckets.get(mat).push(g);
     return this;
   }
+  // everything in another kit, moved to (x, y, z) and turned ry about the vertical
+  add(kit, x = 0, y = 0, z = 0, ry = 0) {
+    for (const [mat, list] of kit.buckets) for (const g of list) this.put(mat, g, x, y, z, 0, ry, 0);
+    return this;
+  }
   box(mat, lx, ly, lz, x, y, z, rx = 0, ry = 0, rz = 0) { return this.put(mat, UNIT.box, x, y, z, rx, ry, rz, lx, ly, lz); }
   // y-range box: easier to read for bodies that sit on a deck
   boxY(mat, x0, x1, y0, y1, hw, z = 0) { return this.box(mat, x1 - x0, y1 - y0, hw * 2, (x0 + x1) / 2, (y0 + y1) / 2, z); }
@@ -57,16 +64,43 @@ export class Kit {
   cylY(mat, r, h, x, y, z, rz = r) { return this.put(mat, UNIT.cylY, x, y, z, 0, 0, 0, r, h, rz); }
   cylZ(mat, r, len, x, y, z) { return this.put(mat, UNIT.cylZ, x, y, z, 0, 0, 0, r, r, len); }
   sphere(mat, rx, ry, rz, x, y, z) { return this.put(mat, UNIT.sphere, x, y, z, 0, 0, 0, rx, ry, rz); }
+  // one merged geometry per material, for callers that draw them their own way (world/track instances them)
+  parts() { return [...this.buckets].map(([mat, list]) => ({ mat, geo: mergeList(list, mat.userData.planar) })); }
   build() {
     const group = new THREE.Group();
-    for (const [mat, list] of this.buckets) {
-      const mesh = new THREE.Mesh(mergeList(list, mat.userData.planar), mat);
-      mesh.castShadow = true; mesh.receiveShadow = true;
+    for (const { mat, geo } of this.parts()) {
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = castsShadow(mat); mesh.receiveShadow = true;
+      if (mat.map) mesh.customDepthMaterial = mappedDepth;
       mesh.userData.owned = true;
       group.add(mesh);
     }
     return group;
   }
+}
+// three's shadow pass draws casters with one shared depth material and copies each one's texture onto
+// it, so which of its shaders it needs can turn on the order things are drawn in, and a new one could
+// compile in the middle of a run. Casters with a texture use this one instead, so each depth shader
+// always belongs to the same material and both are built in the first frame (the room has both kinds).
+const mappedDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+// Lamps, lit windows and glass sit on the surface of a model, inside the shadow of its body, so
+// drawing them into the shadow map as well would cost a draw call and change nothing.
+export const castsShadow = mat => !mat.userData.surface;
+
+// Release what a vehicle made for itself when it leaves the table: geometry a Kit merged for it
+// (userData.owned), and its own lettering and lamp materials. Shared geometry and materials stay.
+export function disposeModel(obj) {
+  obj.traverse(o => {
+    if (!o.isMesh && !o.isSprite) return;
+    if (o.userData.owned) o.geometry.dispose();
+    if (o.userData.ownMat) { if (o.material.map) o.material.map.dispose(); dropMat(o.material); }
+    if (o.userData.ownMatKeepMap) dropMat(o.material);
+  });
+}
+// Fix the transforms of a model that never moves, so the renderer stops recomputing them every frame.
+// To move it later, change it and call updateMatrix() on what moved.
+export function pin(obj) {
+  obj.traverse(o => { o.updateMatrix(); o.matrixAutoUpdate = false; });
 }
 
 // Sweep a closed 2D profile [(lateral, y)] along samples [{x, z, h}]. Lateral is to the right of travel.

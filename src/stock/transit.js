@@ -1,21 +1,13 @@
 // ===== stock/transit: a stainless subway train, a cab car up front and plain cars behind =====
-import { PI, TAU } from '../core/geometry.js';
-import { makeCanvas, canvasTex, textTexture } from '../render/textures.js';
-import { paint, M, glowMat } from '../render/materials.js';
+import { TAU } from '../core/geometry.js';
+import { css, makeCanvas, canvasTex, textTexture } from '../render/textures.js';
+import { paint, M, glowMat, liveryMat } from '../render/materials.js';
 import { Kit, loftGeo } from '../render/kit.js';
-import { decal, letter } from '../render/decals.js';
+import { letter, frontDecal } from '../render/decals.js';
 import { passengerTruck, carTrucks, headlight, windowRow } from './parts.js';
-import { css, liveryMat } from './liveries.js';
 
 const SW = 1.26, STOP = 3.55, SEND = 6.0;   // half-width, roof height and end of the car body
 
-// lettering on the front end, facing forward
-function onFront(parent, tex, w, h, x, y, z) {
-  const m = decal(parent, tex, w, h, 0, y, 0, 1);
-  m.position.set(x, y, z);
-  m.rotation.y = PI / 2;
-  return m;
-}
 function routeBullet(liv) {
   const c = makeCanvas(128, 128), g = c.getContext('2d');
   g.fillStyle = css(liv.stripe); g.beginPath(); g.arc(64, 64, 60, 0, TAU); g.fill();
@@ -66,8 +58,8 @@ function subwayCar(liv, li, cab) {
   letter(body, textTexture(['TINPLATE TRANSIT'], { w: 1024, h: 128, color: '#1d1f22' }), 1.9, 0.22, -1.95, 1.75, SW + 0.012);
   let head = null;
   if (cab) {
-    onFront(body, textTexture(['JUNCTION'], { w: 512, h: 96, color: '#f2b347' }), 0.88, 0.2, SEND + 0.045, 3.2, 0);
-    onFront(body, routeBullet(liv), 0.34, 0.34, SEND + 0.035, 2.74, 0.78);
+    frontDecal(body, textTexture(['JUNCTION'], { w: 512, h: 96, color: '#f2b347' }), 0.88, 0.2, SEND + 0.045, 3.2);
+    frontDecal(body, routeBullet(liv), 0.34, 0.34, SEND + 0.035, 2.74, 0.78);
     head = headlight(body, SEND + 0.04, 1.6);
   }
   return { front: 6.2, back: 6.2, pivots: [4.2, -4.2], body, spin: [], trucks: carTrucks(4.2, 6.2, 6.2, passengerTruck), head, lamps };

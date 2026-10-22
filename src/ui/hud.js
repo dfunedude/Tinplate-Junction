@@ -19,6 +19,18 @@ export function setThrottle(v, fromKey) {
   th.style.setProperty('--val', `${state.throttle * 100}%`);
   $('voltOut').textContent = `${(state.throttle * 18).toFixed(1)} V`;
 }
+// The volts and the scale speed over the throttle, a few times a second. The page is only touched
+// when the text changes, so a train running at a steady speed costs nothing here.
+let readoutT = 0, readoutText = '';
+export function updateReadout(dt) {
+  if ((readoutT -= dt) > 0) return;
+  readoutT = 0.15;
+  const volts = (state.throttle * 18).toFixed(1), mph = Math.round((train.onTrack ? train.speed : 0) * 48 / 17.6);
+  const text = `${volts}|${mph}`;
+  if (text === readoutText) return;
+  readoutText = text;
+  $('readout').innerHTML = `<b>${volts} V</b> · ${mph} smph`;
+}
 export function updateDir() { $('dirLabel').textContent = train.dir > 0 ? 'Forward' : 'Reverse'; }
 export function updateSoundBtn() {
   const b = $('btnSound');

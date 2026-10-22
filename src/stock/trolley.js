@@ -1,12 +1,10 @@
 // ===== stock/trolley: classic double-ended streetcars with trolley poles, and an open summer car =====
-import * as THREE from 'three';
 import { PI, clamp } from '../core/geometry.js';
-import { TEX, textTexture } from '../render/textures.js';
-import { paint, M, glowMat } from '../render/materials.js';
+import { css, textTexture } from '../render/textures.js';
+import { paint, M, glowMat, liveryMat } from '../render/materials.js';
 import { UNIT, Kit, loftGeo } from '../render/kit.js';
-import { decal, letter } from '../render/decals.js';
-import { coupler, withAxles, carTrucks, headlight, windowRow } from './parts.js';
-import { css, liveryMat } from './liveries.js';
+import { letter, endDecals, glowSprite } from '../render/decals.js';
+import { coupler, axles, carTrucks, headlight, windowRow } from './parts.js';
 
 const TW = 1.18;                 // half-width of the carbody
 const TB = 0.95, EAVE = 3.25;    // bottom of the body, and the eaves
@@ -23,13 +21,6 @@ function bowSections(over, y0, y1, r) {
   for (let i = 6; i >= 0; i--) xs.push(-(TBOW + (TEND - TBOW) * i / 6));
   for (let i = 0; i <= 6; i++) xs.push(TBOW + (TEND - TBOW) * i / 6);
   return xs.map(x => ({ x: x * (TEND + over) / TEND, w: planW(x) + over, y0, y1, r }));
-}
-// lettering on an end of the car, facing out along x
-function onEnd(parent, tex, w, h, x, y) {
-  const m = decal(parent, tex, w, h, 0, y, 0, 1);
-  m.position.set(x, y, 0);
-  m.rotation.y = Math.sign(x) * PI / 2;
-  return m;
 }
 // The deck roof shared by the closed and open cars: canvas over the eaves, and a clerestory down the
 // middle with a row of small art-glass windows.
@@ -57,8 +48,8 @@ function streetcarTruck(dir, reach) {
   k.box(M.plastic, 0.5, 0.18, 1.64, 0, 0.66, 0);
   k.boxY(M.graphite, -0.38, 0.38, 0.18, 0.5, 0.32);
   if (dir) coupler(k, dir, reach);
-  const g = k.build();
-  return { g, axles: withAxles(g, [-0.58, 0.58], r) };
+  axles(k, [-0.58, 0.58], r);
+  return { g: k.build() };
 }
 
 // A trolley pole on its sprung base. Its local x runs up the pole, so sim/train only has to turn it:
@@ -73,10 +64,8 @@ function trolleyPole(side) {
   g.rotation.order = 'YZX';
   g.position.set(side * POLE_X, POLE_Y, 0);
   // the blue flash of the wheel arcing on the wire
-  const spark = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: 0xa9cfff, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
+  const spark = glowSprite(0xa9cfff, 1.2);
   spark.position.set(POLE_LEN, 0.05, 0);
-  spark.scale.setScalar(1.2);
-  spark.userData.ownMatKeepMap = true;
   g.add(spark);
   const pole = { g, side, x: side * POLE_X, y: POLE_Y, len: POLE_LEN, rest: -0.08, up: 0, spark };
   g.rotation.set(0, side > 0 ? 0 : PI, pole.rest);
@@ -125,10 +114,8 @@ function streetcar(liv, li, lead) {
   const body = k.build();
   letter(body, textTexture([liv.road], { w: 1024, h: 128, color: liv.ink }), 3.4, 0.24, 0, 3.08, TW + 0.012);
   letter(body, textTexture([liv.num], { w: 256, h: 128, color: liv.ink2 }), 0.62, 0.3, 2.9, 1.47, TW + 0.012);
-  for (const ex of [-1, 1]) {
-    onEnd(body, textTexture([liv.dest], { w: 512, h: 128, color: '#f2c46e' }), 0.78, 0.2, ex * (TEND + 0.055), 3.07);
-    onEnd(body, textTexture([liv.num], { w: 256, h: 128, color: liv.ink2 }), 0.5, 0.22, ex * (TEND + 0.012), 1.2);
-  }
+  endDecals(body, textTexture([liv.dest], { w: 512, h: 128, color: '#f2c46e' }), 0.78, 0.2, TEND + 0.055, 3.07);
+  endDecals(body, textTexture([liv.num], { w: 256, h: 128, color: liv.ink2 }), 0.5, 0.22, TEND + 0.012, 1.2);
   const poles = [trolleyPole(1), trolleyPole(-1)];
   for (const p of poles) body.add(p.g);
   return {

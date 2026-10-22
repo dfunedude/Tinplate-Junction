@@ -37,3 +37,23 @@ export const fill = new THREE.DirectionalLight(0xc9d6ff, 0.35);
 fill.position.set(60, 40, -40);
 scene.add(fill);
 export const LIGHT_BASE = { hemi: hemi.intensity, sun: sun.intensity, fill: fill.intensity };
+
+// ---- resolution ----
+// The canvas starts at the screen's pixel ratio (up to 2). On a GPU that can't keep up, where frames
+// keep coming slower than about 40 a second, it steps a quarter down towards 1 for each two slow
+// seconds or so, and stays there. pace(ms) takes each frame's interval and returns true when it has
+// changed the ratio, so the caller can size the view again.
+const pacing = { ratio: renderer.getPixelRatio(), sum: 0, n: 0, slow: 0 };
+export function pace(ms) {
+  if (pacing.ratio <= 1 || ms > 250) return false;   // a stall, or a tab coming back, says nothing about the GPU
+  pacing.sum += ms;
+  if (++pacing.n < 60) return false;
+  const mean = pacing.sum / pacing.n;
+  pacing.sum = pacing.n = 0;
+  pacing.slow = mean > 24 ? pacing.slow + 1 : 0;
+  if (pacing.slow < 2) return false;
+  pacing.slow = 0;
+  pacing.ratio = Math.max(1, pacing.ratio - 0.25);
+  renderer.setPixelRatio(pacing.ratio);
+  return true;
+}

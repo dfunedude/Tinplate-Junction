@@ -52,17 +52,28 @@ export class Overhead {
     this.root.visible = false;
     scene.add(this.root);
     this.t = 0; this.stale = true; this.wire = null; this.parts = []; this.masts = [];
+    // A scrap of wire that is never shown. It lets the boot compile the wire's shader with all the
+    // others (main.js), instead of stalling a frame when the first trolley comes out.
+    const scrap = new THREE.BufferGeometry();
+    scrap.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0, 0, 0, 0], 3));
+    scrap.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+    scrap.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 2));
+    scrap.setAttribute('reveal', new THREE.Float32BufferAttribute([0, 0, 0], 1));
+    const m = new THREE.Mesh(scrap, wireMat);
+    m.visible = false;
+    this.root.add(m);
   }
   get total() { return SPREAD + POP; }
   // all the way up, so trolley poles can go up to it
   get strung() { return this.t >= this.total; }
   // the track changed: plan the wire again before it's next shown
   invalidate() { this.stale = true; }
-  // want: a trolley is out. from: where it stands, so the wire spreads out from there.
+  // want: a trolley is out. from(): where it stands, so the wire spreads out from there (only asked
+  // when the wire is planned).
   update(dt, layout, want, from) {
     if (!want && !this.t) return;
     const t0 = this.t, rebuilt = this.stale;
-    if (rebuilt) this.build(layout, from);
+    if (rebuilt) this.build(layout, from());
     this.t = want ? Math.min(this.total, this.t + dt) : Math.max(0, this.t - dt * 1.6);
     if (this.t !== t0 || rebuilt) this.place();
     this.root.visible = this.t > 0;

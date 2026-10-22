@@ -1,10 +1,9 @@
 // ===== stock/passenger: a modern passenger diesel, with single-level and bi-level coaches =====
-import { textTexture } from '../render/textures.js';
-import { M, glowMat } from '../render/materials.js';
+import { css, textTexture } from '../render/textures.js';
+import { M, glowMat, liveryMat } from '../render/materials.js';
 import { UNIT, Kit, prismX, loftGeo } from '../render/kit.js';
 import { letter } from '../render/decals.js';
 import { bodyCoupler, dieselTruck, passengerTruck, carTrucks, headlight, windowRow, gangway } from './parts.js';
-import { css, liveryMat } from './liveries.js';
 
 const PW = 1.25;               // half-width of the passenger cars
 const COACH_LIGHT = 0xe0c48c;  // warm interior bulbs

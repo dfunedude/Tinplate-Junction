@@ -6,7 +6,8 @@ import { views, sound, train, state } from '../state.js';
 import { toast } from './dom.js';
 import { updateButtons } from './hud.js';
 import { view, placeCamera, stopTween, follow } from './camera.js';
-import { markers, refreshMarkers, highlight, throwSwitch, beginDrag, dragMove, endDrag } from './editor.js';
+import { markers } from '../world/track.js';
+import { refreshMarkers, highlight, throwSwitch, beginDrag, dragMove, endDrag } from './editor.js';
 
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.35);

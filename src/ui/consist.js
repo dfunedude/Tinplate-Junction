@@ -1,5 +1,6 @@
 // ===== ui/consist: the Train tab, where you pick an engine and add, repaint or uncouple cars =====
-import { css, LIVERIES } from '../stock/liveries.js';
+import { css } from '../render/textures.js';
+import { LIVERIES } from '../stock/liveries.js';
 import { VEHICLES, FAMILIES } from '../stock/catalog.js';
 import { train, state, MAX_CARS } from '../state.js';
 import { save } from '../storage.js';
