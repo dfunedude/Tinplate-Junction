@@ -8,7 +8,7 @@ import { buildSubway, buildSubwayCar } from './transit.js';
 import { buildHighSpeed, buildPowerCarRear, buildHsCoach } from './highspeed.js';
 import { buildTrolley, buildTrolleyCar, buildOpenCar } from './trolley.js';
 
-// Each builder returns { front, back, pivots, body, trucks, spin, head?, lamps?, poles?, update? }.
+// Each builder returns { front, back, pivots, body, trucks, spin, head?, backHead?, lamps?, poles?, update? }.
 // Local frame: +x forward, y up from the rail head, z to the right.
 // `set` is the kind of train it belongs to (see FAMILIES); `tail` cars stay at the back of the train.
 export const VEHICLES = {

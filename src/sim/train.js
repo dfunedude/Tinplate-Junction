@@ -186,15 +186,22 @@ export class Train {
       p.g.rotation.set(0, (p.side > 0 ? 0 : PI) + k * Math.atan2(-az, ax), p.rest + k * (Math.atan2(rise, Math.hypot(ax, az)) - p.rest));
     }
   }
+  // The headlight a vehicle shows: the front one, unless it has one at the back too (a double-ended
+  // trolley) and the train is set to reverse.
+  headFor(v) { return v.backHead && this.dir < 0 ? v.backHead : v.head; }
   // lamps run off track voltage, so they glow brighter as the throttle opens
   lights(volts, dark) {
     const on = volts > 0.04 ? 0.35 + 0.65 * Math.min(1, volts / 0.9) : 0;
     for (const v of this.vehicles) {
-      if (v.head) {
-        v.head.lensM.emissiveIntensity = on * 3.2;
-        v.head.glow.material.opacity = on * (0.3 + 0.6 * dark);
-        v.head.glow.scale.setScalar(1.4 + on * (1.4 + 1.6 * dark));
-        v.head.pool.material.opacity = on * 0.22 * dark;
+      // a car with a lamp at each end lights only the one at the end it's heading for
+      const ahead = this.headFor(v);
+      for (const h of [v.head, v.backHead]) {
+        if (!h) continue;
+        const lit = h === ahead ? on : 0;
+        h.lensM.emissiveIntensity = lit * 3.2;
+        h.glow.material.opacity = lit * (0.3 + 0.6 * dark);
+        h.glow.scale.setScalar(1.4 + lit * (1.4 + 1.6 * dark));
+        h.pool.material.opacity = lit * 0.22 * dark;
       }
       if (v.lamps) for (const m of v.lamps) m.emissiveIntensity = on * 1.8;
       // now and then the trolley wheel arcs on the wire, a blue flash best seen after dark
@@ -203,13 +210,13 @@ export class Train {
         p.spark.material.opacity = arc ? Math.random() * (0.3 + 0.7 * dark) : 0;
       }
     }
-    // aim the beam from the lens down the track to a spot on the table about 30 inches ahead
-    const lead = this.vehicles[0];
-    if (lead && lead.head) {
+    // aim the beam from the lit lens down the track to a spot on the table about 30 inches ahead
+    const lead = this.vehicles[0], head = lead && this.headFor(lead);
+    if (head) {
       lead.body.updateMatrixWorld();
-      const p = lead.head.pos;
+      const p = head.pos;
       lead.body.localToWorld(this._lp.copy(p));
-      lead.body.localToWorld(this._lt.set(p.x + 30, -RAIL_TOP, p.z));
+      lead.body.localToWorld(this._lt.set(p.x + 30 * head.dir, -RAIL_TOP, p.z));
       this.beam.position.copy(this._lp);
       this.beam.target.position.copy(this._lt);
       this.beam.target.updateMatrixWorld();

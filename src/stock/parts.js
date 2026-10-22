@@ -106,22 +106,23 @@ export function carTrucks(off, front, back, kind = freightTruck) {
 }
 
 // ---- headlight ----
-export function headlight(body, x, y, z = 0) {
+// It shines along +x, or back along -x with dir = -1 (the far end of a double-ended car).
+export function headlight(body, x, y, z = 0, dir = 1) {
   const lensM = glowMat(0xffe0a6, 0);
   const lens = new THREE.Mesh(UNIT.sphere, lensM);
   lens.scale.setScalar(0.14);
   lens.position.set(x, y, z);
   body.add(lens);
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow, color: 0xffd596, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
-  glow.position.set(x + 0.12, y, z);
+  glow.position.set(x + 0.12 * dir, y, z);
   body.add(glow);
   const pool = new THREE.Mesh(decalGeo, new THREE.MeshBasicMaterial({ map: TEX.pool, color: 0xffd596, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 }));
-  pool.rotation.x = -PI / 2;
+  pool.rotation.set(-PI / 2, 0, dir < 0 ? PI : 0);
   pool.scale.set(10, 6, 1);
-  pool.position.set(x + 5.2, -RAIL_TOP + 0.04, z);
+  pool.position.set(x + 5.2 * dir, -RAIL_TOP + 0.04, z);
   body.add(pool);
   lens.userData.ownMatKeepMap = glow.userData.ownMatKeepMap = pool.userData.ownMatKeepMap = true;
-  return { lensM, glow, pool, pos: new THREE.Vector3(x, y, z) };
+  return { lensM, glow, pool, pos: new THREE.Vector3(x, y, z), dir };
 }
 
 // ---- passenger fittings ----

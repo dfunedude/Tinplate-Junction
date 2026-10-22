@@ -82,7 +82,9 @@ function trolleyPole(side) {
   return pole;
 }
 
-// ---- closed streetcar: the lead car carries the lit headlight ----
+// ---- closed streetcar ----
+// The Trolley itself (lead) keeps its windows dark and has a headlight at each end; sim/train lights
+// the one at the end it's heading for. A coupled trolley car has lit windows and blank lamps.
 function streetcar(liv, li, lead) {
   const planar = { x0: -TEND, x1: TEND, y0: TB, y1: EAVE + 0.4 };
   const skin = liveryMat('streetcar-' + li, planar, { roughness: 0.4, metalness: 0.1, envMapIntensity: 0.7 }, (g, X, Y, W, H) => {
@@ -93,7 +95,7 @@ function streetcar(liv, li, lead) {
     for (const [x0, x1] of [[-TBOW + 0.25, -0.1], [0.1, TBOW - 0.25]]) g.strokeRect(X(x0), Y(1.8), X(x1) - X(x0), Y(1.15) - Y(1.8));
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(0, Y(1.06), W, Y(TB) - Y(1.06));      // shadowed sill
   });
-  const win = glowMat(STREETCAR_LIGHT, 0), cler = glowMat(0xe9b65c, 0);
+  const win = lead ? M.glass : glowMat(STREETCAR_LIGHT, 0), cler = lead ? M.glass : glowMat(0xe9b65c, 0);
   const door = paint(0x5a3e2b, 0.55, 0), wood = paint(0x6d4c33, 0.8, 0);
   const k = new Kit();
   k.put(skin, loftGeo(bowSections(0, TB, EAVE, 0.08)));
@@ -112,7 +114,7 @@ function streetcar(liv, li, lead) {
     k.box(M.black, 0.04, 0.24, 0.84, ex * (TEND + 0.03), 3.07, 0);                   // destination sign
     k.box(M.black, 0.14, 0.16, 1.25, ex * (TEND + 0.05), 1.02, 0);                   // anticlimber
     k.cylX(M.black, 0.17, 0.14, ex * (TEND + 0.06), 1.55, 0);                        // headlight case
-    if (!lead || ex < 0) k.sphere(M.glass, 0.12, 0.12, 0.12, ex * (TEND + 0.14), 1.55, 0);
+    if (!lead) k.sphere(M.glass, 0.12, 0.12, 0.12, ex * (TEND + 0.14), 1.55, 0);
     k.box(wood, 1.6, 0.05, 0.5, ex * POLE_X, 3.93, 0);                               // trolley boards
     k.cylY(M.black, 0.16, 0.18, ex * POLE_X, 4.02, 0);                               // pole base
     k.box(M.black, 0.06, 0.3, 0.08, ex * 5.65, 3.7, 0);                              // pole hook
@@ -130,7 +132,9 @@ function streetcar(liv, li, lead) {
   for (const p of poles) body.add(p.g);
   return {
     front: 6.2, back: 6.2, pivots: [3.4, -3.4], body, spin: [], trucks: carTrucks(3.4, 6.2, 6.2, streetcarTruck),
-    head: lead ? headlight(body, TEND + 0.14, 1.55) : null, lamps: [win, cler], poles,
+    head: lead ? headlight(body, TEND + 0.14, 1.55) : null,
+    backHead: lead ? headlight(body, -(TEND + 0.14), 1.55, 0, -1) : null,
+    lamps: lead ? [] : [win, cler], poles,
   };
 }
 export function buildTrolley(liv, li) { return streetcar(liv, li, true); }
