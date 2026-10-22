@@ -1,5 +1,6 @@
 // ===== ui/hud: readouts and button states on the control deck =====
 import { clamp } from '../core/geometry.js';
+import { graphics } from '../render/stage.js';
 import { layout, sound, train, state } from '../state.js';
 import { $ } from './dom.js';
 
@@ -38,6 +39,11 @@ export function updateSoundBtn() {
   b.setAttribute('aria-label', sound.on ? 'Sound on' : 'Sound off');
   b.querySelector('.wave').style.display = sound.on ? '' : 'none';
   b.querySelector('.mute').style.display = sound.on ? 'none' : '';
+}
+export function updateFastBtn() {
+  const b = $('btnFast');
+  b.setAttribute('aria-pressed', String(graphics.fast));
+  b.setAttribute('aria-label', graphics.fast ? 'Fast graphics on' : 'Fast graphics off');
 }
 export function setLamp(on) {
   state.lampOn = on;

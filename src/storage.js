@@ -1,4 +1,5 @@
 // ===== storage: keeps the layout, train and settings in localStorage =====
+import { graphics } from './render/stage.js';
 import { VEHICLES, FAMILIES } from './stock/catalog.js';
 import { layout, sound, train, state, MAX_CARS } from './state.js';
 
@@ -7,7 +8,7 @@ const STORE_KEY = 'tinplate-junction-v1';
 // frames, so writing to storage never holds up the train.
 const whenIdle = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 1000 }) : f => f();
 function write() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, layout: layout.serialize(), consist: train.consist, parked: state.parked, sound: sound.on, pose: train.onTrack ? train.headPose() : train.lastPose })); } catch (e) { /* storage unavailable */ }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, layout: layout.serialize(), consist: train.consist, parked: state.parked, sound: sound.on, fast: graphics.fast, pose: train.onTrack ? train.headPose() : train.lastPose })); } catch (e) { /* storage unavailable */ }
 }
 export function save() {
   clearTimeout(save.t);

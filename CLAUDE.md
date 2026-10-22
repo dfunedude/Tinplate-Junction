@@ -35,7 +35,7 @@ Draw calls are what the frame costs: every mesh is one, and another in the shado
 - Things that don't move go into one kit (`world/scenery.js`, `world/room.js`) and get `pin`ned. Track pieces are drawn as one instanced mesh per piece type and material (`world/track.js`); a `PieceView` holds its piece's slot in them.
 - Every shader compiles at boot (`warmShaders` in `main.js`, which shows hidden objects for the moment it takes), so nothing stalls a frame by compiling mid-run. Something with a new kind of material should be in the scene from boot, hidden if need be, like the scrap of trolley wire in `world/overhead.js`.
 - Don't allocate or touch the page in per-frame code: reuse objects (route `at(t, out)`), and only write to the DOM when the text changes.
-- `render/stage.js` steps the pixel ratio down from 2 towards 1 if frames keep coming slower than about 40 a second.
+- `render/stage.js` steps the pixel ratio down from 2 towards 1 if frames keep coming slower than about 40 a second. The player's Fast graphics setting (`setFastGraphics`, saved as `fast`) halves the ratio, never below 0.75, and the shadow map with it.
 
 ## Publishing
 

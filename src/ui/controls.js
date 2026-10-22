@@ -1,10 +1,11 @@
 // ===== ui/controls: wires up the deck buttons, tabs and keyboard shortcuts =====
 import { PRESETS } from '../core/presets.js';
+import { graphics, setFastGraphics } from '../render/stage.js';
 import { VEHICLES, FAMILIES } from '../stock/catalog.js';
 import { layout, sound, train, state } from '../state.js';
 import { save } from '../storage.js';
 import { $, toast } from './dom.js';
-import { setThrottle, updateDir, updateSoundBtn, setLamp, updateButtons } from './hud.js';
+import { setThrottle, updateDir, updateSoundBtn, updateFastBtn, setLamp, updateButtons } from './hud.js';
 import { resetView, follow, setFollow } from './camera.js';
 import { refreshMarkers, highlight, addPiece, rotateSel, deleteSel, undo, loadPreset } from './editor.js';
 import { setEngine, addCar, showFamily } from './consist.js';
@@ -54,6 +55,7 @@ export function buildControls() {
   $('btnDelete').addEventListener('click', deleteSel);
   $('btnUndo').addEventListener('click', undo);
   $('btnSound').addEventListener('click', () => { sound.init(); sound.setOn(!sound.on); updateSoundBtn(); save(); });
+  $('btnFast').addEventListener('click', toggleFast);
   $('btnView').addEventListener('click', () => { setFollow(false); resetView(true); });
   $('btnFollow').addEventListener('click', () => setFollow(!follow.on));
   $('btnHelp').addEventListener('click', () => { $('help').hidden = false; $('btnHelpClose').focus(); });
@@ -72,6 +74,12 @@ export function buildControls() {
     if (document.hidden) { signal(false); sound.pause(); save(); } else sound.resume();
   });
 }
+// fast graphics: a softer picture that's quicker to draw, for machines where the trains run unevenly
+function toggleFast() {
+  setFastGraphics(!graphics.fast);
+  updateFastBtn(); save();
+  toast(graphics.fast ? 'Fast graphics: a softer picture that\'s quicker to draw.' : 'Full graphics.');
+}
 function signal(down) {
   if (down) sound.init();
   sound.signal(down, train.locoSpec ? train.locoSpec.sound : 'horn');
@@ -86,6 +94,7 @@ function onKey(e) {
   else if (k === 'ArrowDown' || k === 'ArrowLeft') { if (e.target.id !== 'throttle') { e.preventDefault(); setThrottle(state.throttle - 0.05, true); } }
   else if (k === 'd' || k === 'D') { sound.init(); train.reverse(); updateDir(); }
   else if (k === 'f' || k === 'F') setFollow(!follow.on);
+  else if (k === 'g' || k === 'G') toggleFast();
   else if ((k === 'w' || k === 'W') && !e.repeat) signal(true);
   else if ((k === 'r' || k === 'R') && state.mode === 'track') rotateSel();
   else if ((k === 'Delete' || k === 'Backspace') && state.mode === 'track') { e.preventDefault(); deleteSel(); }

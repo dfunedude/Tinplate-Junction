@@ -4,7 +4,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export const canvas = document.getElementById('view');
 export const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const FULL_RATIO = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(FULL_RATIO);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -38,13 +39,30 @@ fill.position.set(60, 40, -40);
 scene.add(fill);
 export const LIGHT_BASE = { hemi: hemi.intensity, sun: sun.intensity, fill: fill.intensity };
 
-// ---- resolution ----
-// The canvas starts at the screen's pixel ratio (up to 2). On a GPU that can't keep up, where frames
-// keep coming slower than about 40 a second, it steps a quarter down towards 1 for each two slow
-// seconds or so, and stays there. pace(ms) takes each frame's interval and returns true when it has
-// changed the ratio, so the caller can size the view again.
-const pacing = { ratio: renderer.getPixelRatio(), sum: 0, n: 0, slow: 0 };
+// ---- resolution and graphics quality ----
+// Full graphics renders at the screen's pixel ratio (up to 2). On a GPU that can't keep up, where
+// frames keep coming slower than about 40 a second, it steps a quarter down towards 1 for each two
+// slow seconds or so, and stays there. Fast graphics, chosen by the player, renders at half the
+// screen's ratio (never under 0.75) with a quarter of the shadow map: the browser scales the picture
+// up, so it's softer, but there are a quarter as many pixels to draw on a retina screen.
+// pace(ms) takes each frame's interval and returns true when the ratio has changed (by itself or
+// through setFastGraphics), so the caller can size the view again.
+const FAST_RATIO = Math.max(0.75, FULL_RATIO / 2);
+const SHADOW_SIZE = sun.shadow.mapSize.x, SHADOW_NORMAL_BIAS = sun.shadow.normalBias;
+export const graphics = { fast: false };
+const pacing = { ratio: FULL_RATIO, sum: 0, n: 0, slow: 0, changed: false };
+export function setFastGraphics(on) {
+  graphics.fast = on;
+  Object.assign(pacing, { ratio: on ? FAST_RATIO : FULL_RATIO, sum: 0, n: 0, slow: 0, changed: true });
+  renderer.setPixelRatio(pacing.ratio);
+  // a new shadow map at the new size is made on the next frame; its texels are twice the size, so
+  // surfaces are pushed twice as far off them to keep clear of shadow acne
+  sun.shadow.mapSize.setScalar(on ? SHADOW_SIZE / 2 : SHADOW_SIZE);
+  sun.shadow.normalBias = on ? SHADOW_NORMAL_BIAS * 2 : SHADOW_NORMAL_BIAS;
+  if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+}
 export function pace(ms) {
+  if (pacing.changed) { pacing.changed = false; return true; }
   if (pacing.ratio <= 1 || ms > 250) return false;   // a stall, or a tab coming back, says nothing about the GPU
   pacing.sum += ms;
   if (++pacing.n < 60) return false;

@@ -8,7 +8,8 @@ A 3D tabletop toy train layout that runs in the browser. Lay O27 tubular three-r
 - **Track**: tap a piece to add it at the glowing open end, or tap any ring to build from that end. Drag pieces and their ends snap together. Rotate, Delete, Undo and preset layouts are on the second row.
 - **Train**: choose a kind of train (freight, passenger, subway, high-speed or trolley), then pick an engine and add cars. Each kind keeps its own train, so switching back brings yours out again. Tap the engine again, or a car in your train, to repaint it, or × to uncouple a car. Tap any track to set the train down there. Passenger cars light up when the track has power.
 - **Trolleys**: bringing out a trolley strings overhead wire over the whole layout, mast by mast, and the trolley raises the pole behind it to the wire. The pole swaps ends when you reverse, and so does the headlight: the trolley lights only the lamp at the end it's heading for. Its windows glow a dim amber after dark. Put the trolley away and the wire comes down again.
-- **Keys**: ↑ ↓ throttle · D direction · W whistle · F follow cam · R rotate · Delete · Ctrl+Z undo · 1 2 3 tabs
+- **Fast graphics**: if the trains run unevenly, the gauge button at the top draws a softer picture at a lower resolution, with a smaller shadow map. It's remembered with your layout.
+- **Keys**: ↑ ↓ throttle · D direction · W whistle · F follow cam · G fast graphics · R rotate · Delete · Ctrl+Z undo · 1 2 3 tabs
 
 ## Working on it
 

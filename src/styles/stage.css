@@ -55,6 +55,18 @@
   .icon-btn { width: 40px; height: 40px; }
   .brand-sub { display: none; }
 }
+/* the title and five round buttons share the top of a phone */
+@media (max-width: 520px) {
+  .brand-sub { display: none; }
+}
+@media (max-width: 400px) {
+  .brand-mark { font-size: 14px; }
+  .hud-tools { gap: 5px; }
+  .icon-btn { width: 38px; height: 38px; }
+}
+@media (max-width: 350px) {
+  .brand-mark { max-width: 5em; line-height: 1.05; }
+}
 @media (max-height: 520px) and (orientation: landscape) {
   .brand-sub { display: none; }
 }

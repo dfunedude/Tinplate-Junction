@@ -1,7 +1,7 @@
 // ===== main: boot, resize and the frame loop =====
 import { PI } from './core/geometry.js';
 import { buildPreset } from './core/presets.js';
-import { canvas, renderer, scene, camera, pace } from './render/stage.js';
+import { canvas, renderer, scene, camera, pace, setFastGraphics } from './render/stage.js';
 import { setRoomLight } from './render/materials.js';
 import { buildRoom } from './world/room.js';
 import { animateTrack } from './world/track.js';
@@ -10,7 +10,7 @@ import { VEHICLES, FAMILIES } from './stock/catalog.js';
 import { layout, views, sound, smoke, train, overhead, state } from './state.js';
 import { save, loadSaved, savedConsist, savedParked } from './storage.js';
 import { $, toast } from './ui/dom.js';
-import { setThrottle, updateReadout, updateDir, updateSoundBtn, setLamp, updateButtons } from './ui/hud.js';
+import { setThrottle, updateReadout, updateDir, updateSoundBtn, updateFastBtn, setLamp, updateButtons } from './ui/hud.js';
 import { view, resetView, stepCamera } from './ui/camera.js';
 import { syncViews, addPiece, rotateSel, autoPlaceTrain, throwSwitch, loadPreset } from './ui/editor.js';
 import { applyConsist, setEngine, addCar, renderConsist, showFamily } from './ui/consist.js';
@@ -91,12 +91,13 @@ function boot() {
   if (saved) state.parked = savedParked(saved.parked);
   showFamily(VEHICLES[train.consist[0].type].set);
   if (saved && saved.sound === false) sound.on = false;
+  if (saved && saved.fast === true) setFastGraphics(true);
   // put the train back where it was, or on the front straight of the starter layout
   const pose = saved && saved.pose && isFinite(saved.pose.x) ? saved.pose : null;
   if (pose) train.placeNear(pose.x, pose.z, pose.h);
   else if (layout.pieces[4]) { const c = layout.endWorld(layout.pieces[4], 1); train.placeNear(c.x, c.z, c.h); }
   autoPlaceTrain();
-  renderConsist(); updateDir(); updateSoundBtn(); updateButtons(); setThrottle(0, true); setLamp(true);
+  renderConsist(); updateDir(); updateSoundBtn(); updateFastBtn(); updateButtons(); setThrottle(0, true); setLamp(true);
   new ResizeObserver(resize).observe($('stage'));
   resize();
   resetView(false);
@@ -107,4 +108,4 @@ function boot() {
 }
 boot();
 // test handle for scripted checks; release builds drop this line (see tools/build.mjs)
-window.__tj = { layout, train, overhead, view, camera, state, views, scene, renderer, sound, setMode, setEngine, addCar, setThrottle, setLamp, loadPreset, addPiece, throwSwitch, applyConsist, rotateSel, syncViews };
+window.__tj = { layout, train, overhead, view, camera, state, views, scene, renderer, sound, setMode, setEngine, addCar, setThrottle, setLamp, setFastGraphics, loadPreset, addPiece, throwSwitch, applyConsist, rotateSel, syncViews };
