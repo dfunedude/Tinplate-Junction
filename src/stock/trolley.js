@@ -13,6 +13,7 @@ const TB = 0.95, EAVE = 3.25;    // bottom of the body, and the eaves
 const TBOW = 4.55, TEND = 5.8;   // where the rounded vestibule ends start, and where the body ends
 const POLE_X = 1.9, POLE_Y = 4.12, POLE_LEN = 5.0;   // each pole's pivot on the roof, and its length
 const STREETCAR_LIGHT = 0xe8cf98;
+const TROLLEY_NIGHT = 0xe8a04a;   // the Trolley's own windows: deeper amber, and a shade dimmer
 // half-width of the body along its length: straight sides, then bowed ends
 const planW = x => TW * Math.sqrt(1 - 0.72 * clamp((Math.abs(x) - TBOW) / (TEND - TBOW), 0, 1) ** 2);
 
@@ -83,8 +84,8 @@ function trolleyPole(side) {
 }
 
 // ---- closed streetcar ----
-// The Trolley itself (lead) keeps its windows dark and has a headlight at each end; sim/train lights
-// the one at the end it's heading for. A coupled trolley car has lit windows and blank lamps.
+// The Trolley itself (lead) has a headlight at each end, and sim/train lights the one at the end it's
+// heading for. Its windows only glow after dark, in amber. A coupled trolley car has lit windows and blank lamps.
 function streetcar(liv, li, lead) {
   const planar = { x0: -TEND, x1: TEND, y0: TB, y1: EAVE + 0.4 };
   const skin = liveryMat('streetcar-' + li, planar, { roughness: 0.4, metalness: 0.1, envMapIntensity: 0.7 }, (g, X, Y, W, H) => {
@@ -95,7 +96,7 @@ function streetcar(liv, li, lead) {
     for (const [x0, x1] of [[-TBOW + 0.25, -0.1], [0.1, TBOW - 0.25]]) g.strokeRect(X(x0), Y(1.8), X(x1) - X(x0), Y(1.15) - Y(1.8));
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(0, Y(1.06), W, Y(TB) - Y(1.06));      // shadowed sill
   });
-  const win = lead ? M.glass : glowMat(STREETCAR_LIGHT, 0), cler = lead ? M.glass : glowMat(0xe9b65c, 0);
+  const win = glowMat(lead ? TROLLEY_NIGHT : STREETCAR_LIGHT, 0), cler = glowMat(lead ? 0xd8862e : 0xe9b65c, 0);
   const door = paint(0x5a3e2b, 0.55, 0), wood = paint(0x6d4c33, 0.8, 0);
   const k = new Kit();
   k.put(skin, loftGeo(bowSections(0, TB, EAVE, 0.08)));
@@ -134,7 +135,7 @@ function streetcar(liv, li, lead) {
     front: 6.2, back: 6.2, pivots: [3.4, -3.4], body, spin: [], trucks: carTrucks(3.4, 6.2, 6.2, streetcarTruck),
     head: lead ? headlight(body, TEND + 0.14, 1.55) : null,
     backHead: lead ? headlight(body, -(TEND + 0.14), 1.55, 0, -1) : null,
-    lamps: lead ? [] : [win, cler], poles,
+    lamps: [win, cler], lampsAfterDark: lead, poles,
   };
 }
 export function buildTrolley(liv, li) { return streetcar(liv, li, true); }

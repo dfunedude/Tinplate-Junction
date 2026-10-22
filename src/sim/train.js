@@ -203,7 +203,11 @@ export class Train {
         h.glow.scale.setScalar(1.4 + lit * (1.4 + 1.6 * dark));
         h.pool.material.opacity = lit * 0.22 * dark;
       }
-      if (v.lamps) for (const m of v.lamps) m.emissiveIntensity = on * 1.8;
+      if (v.lamps) {
+        // some cars (the Trolley) only light their windows once the room lamp is off
+        const glow = on * 1.8 * (v.lampsAfterDark ? dark : 1);
+        for (const m of v.lamps) m.emissiveIntensity = glow;
+      }
       // now and then the trolley wheel arcs on the wire, a blue flash best seen after dark
       if (v.poles) for (const p of v.poles) {
         const arc = on && p.up > 0.98 && this.speed > 3 && Math.random() < 0.2;
